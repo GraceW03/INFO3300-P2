@@ -107,7 +107,7 @@
 
       const colorScale = d3.scaleQuantile()
         .domain(Object.values(stateDict))
-        .range(["#fff", "#d1e8ed", "#adc2da", "#8879b3", "#762b80"]);
+        .range(["#ddd", "#d1e8ed", "#adc2da", "#8879b3", "#762b80"]);
 
       console.log(stateDict);
 
@@ -118,13 +118,9 @@
         codeDict[d.state_code] = d.state_name;
       });
 
-      console.log(codeDict);
-
 
       map.selectAll(".state")
         .style("fill", d => {
-          console.log(stateDict[codeDict[d.id]]);
-          console.log(colorScale(stateDict[codeDict[d.id]]));
           return colorScale(stateDict[codeDict[d.id]]);
         });
 
