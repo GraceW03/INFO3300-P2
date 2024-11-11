@@ -38,6 +38,10 @@
   <svg id="bar1" height="500" width="400"></svg>
   <svg id="bar2" height="500" width="400"></svg>
 
+  <input type="range" id="slider-value" name="slider-value" value="0" min="0" max="100" step="1"
+    style="width: 600px; margin-top: 10px;" />
+  <label for="slider-value" id="date">Date: </label>
+
   <script>
     const requestData = async function () {
       const svg = d3.select("#choropleth");
@@ -124,8 +128,6 @@
           return colorScale(stateDict[codeDict[d.id]]);
         });
 
-
-
       //hover and add box for a more detailed view into the data
 
       let tooltipWidth = 120;
@@ -195,9 +197,77 @@
 
         let state = d3.select(this);
         momesh.attr("d", "");
+      }
+
+      /****************** Panning and Zooming on Map *******************/
+      var zoom = d3.zoom()
+        .scaleExtent([1, 20])
+        .translateExtent([[-50, -50], [mapWidth + 50, mapHeight + 50]])
+        .on("zoom", mapZoomed);
+
+      svg.call(zoom);
+
+      svg.call(zoom.transform, d3.zoomIdentity);
+
+
+      // This time we're using *destructuring assignments* to directly get the values we need
+      // Check out these docs: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment
+      function mapZoomed({ transform }) {
+        map.attr("transform", transform.toString());
+
+        map.select(".state-outline")
+          .style("stroke-width", 2 / transform.k);
+        map.select(".county-outline")
+          .style("stroke-width", 1 / transform.k);
+
+        // Expose county layer when sufficiently zoomed
+        // viewport.select(".county-outline")
+        //   .attr("visibility", (transform.k > 3) ? "visible" : "hidden");
+        // viewport.selectAll(".county")
+        //   .attr("visibility", (transform.k > 3) ? "visible" : "hidden");
 
       }
 
+
+      // BONUS: Click on a state/county to zoom in on it!
+      map.selectAll(".state").on("click", clicked);
+      // viewport.selectAll(".county").on("click", clicked);
+
+      function clicked(event, d) {
+        console.log(d)
+
+        // geoPath generators have a few extra functions. .bounds returns a pixel rectangle bounding the shape you give it
+        let bounds = path.bounds(d.geometry); // get bounds for clicked state/county
+        let dx = bounds[1][0] - bounds[0][0]; // width of state/county
+        let dy = bounds[1][1] - bounds[0][1]; // height of state/county
+        let x = (bounds[0][0] + bounds[1][0]) / 2; // center x of state/county
+        let y = (bounds[0][1] + bounds[1][1]) / 2; // center y of state/county
+
+        // We want to make sure scale is within 1-10 when we click, so things don't zoom too far or too little
+        // To compute zoom, we want to make sure the bounding box "just" fits onscreen.
+        // dx / mapWidth gets us the portion of the screen the shape takes up without any zoom at all
+        //  the lower dx/mapWidth is, the more we need to zoom because the shape is smaller
+        // We find the max of dx/mapWidth, dy/mapHeight because we don't want to zoom farther (smaller values need more zoom)
+        // We do 1 or 0.9 divided by dx/mapWidth because we need larger numbers to zoom in. 0.9 allows us to pad things a bit
+        let scale = Math.max(1, Math.min(10, 0.9 / Math.max(dx / mapWidth,
+          dy / mapHeight)));
+
+        // Think of the translate like a delta describing how much we need to move the map to move a point to a desired position
+        // Simplistically, it works like (desired position) - (current position) = (translation)
+        // In this case mapWidth/2, the center of the screen is the desired place for our viewport
+        // x*scale is the position we want to move to the center (scale is there because we need to move more when zoomed in)
+        let translate = [mapWidth / 2 - x * scale, mapHeight / 2 - y * scale];
+
+        // It's hard to programmatically adjust a zoom. The best way is to take the Identity (zoom transform where nothing is changed)
+        //  and then modify it using a .translate and .scale
+        let newTransform = d3.zoomIdentity
+          .translate(translate[0], translate[1])
+          .scale(scale);
+        // We can apply a new transform to the screen by using .call(zoom.tranform, newTransform)
+        // This is kinda the same thing as running zoom.transform(newTransform), but the chaining with .call allows us to add an animation
+        svg.transition().duration(1000).call(zoom.transform, newTransform);
+
+      }
     }
     requestData();
 
