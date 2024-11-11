@@ -6,44 +6,27 @@
   <link rel="stylesheet" href="styles/style.css">
 </head>
 
-
-<style>
-  .state {
-    fill: lightgrey;
-  }
-
-  .outline {
-    fill: none;
-    stroke: black;
-    stroke-width: 1px;
-  }
-
-  .graticule {
-    fill: none;
-    stroke: grey;
-    stroke-width: 1px;
-  }
-
-  .tooltip {
-    pointer-events: none;
-  }
-</style>
+<!-- put any CSS in styles/style.css -->
 
 <body>
 
-  <!-- Scrolling bar for timeline, TODO -->
+
 
   <!-- First SVG section with interactive map + bar charts -->
   <svg id="choropleth" height="500" width="600"></svg>
-  <svg id="bar1" height="500" width="400"></svg>
-  <svg id="bar2" height="500" width="400"></svg>
+  <svg id="bar1" height="250" width="400"></svg>
+  <svg id="bar2" height="250" width="400"></svg>
 
+  <!-- Scrolling bar for timeline -->
   <input type="range" id="slider-value" name="slider-value" value="0" min="0" max="100" step="1"
-    style="width: 600px; margin-top: 10px;" />
+    style="width: 1000px; margin-top: 10px;" />
   <label for="slider-value" id="date">Date: </label>
 
   <script>
     const requestData = async function () {
+      /*************************** Work with slider **************************/
+
+
       const svg = d3.select("#choropleth");
       const width = svg.attr("width");
       const height = svg.attr("height");
@@ -52,6 +35,7 @@
       const mapHeight = height - margin.top - margin.bottom;
 
       /*************************** Create the map **************************/
+      // referenced October 9 lecture
       const us = await d3.json("./data/us-smaller.json"); // what's up with the period??? ask TA
       var states = topojson.feature(us, us.objects.states);
       var statesMesh = topojson.mesh(us, us.objects.states);
@@ -64,21 +48,14 @@
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
 
-      /********** CODE FROM NOTES IDK WHAT IS GOING ON ***************/
-      // draws the projection lines for the globe (can remove later)
-      // let graticule = d3.geoGraticule10();
-      // console.log(graticule);
-      // map.append("path").attr("class", "graticule").attr("d", path(graticule));
-
-
-      // 2c. Draw states and outlines (see CSS at the top)
+      // draw states and outlines (see CSS at the top)
       let statePaths = map.selectAll("path.state").data(states.features)
         .join("path")
         .attr("class", "state")
-        .attr("note", d => d.id)  // debugging
+        .attr("note", d => d.id)
         .attr("d", path)
         .on('mouseover', mouseEntersState)
-        .on('mouseout', mouseLeavesState); // TODO
+        .on('mouseout', mouseLeavesState);
 
       map.append("path").datum(statesMesh)
         .attr("class", "outline")
@@ -96,18 +73,12 @@
         if (stateDict[d.location]) {
           stateDict[d.location] += d.total_vaccinations;
         } else {
-          stateDict[d.location] = d.total_vaccinations
+          stateDict[d.location] = d.total_vaccinations;
         };
       });
 
       const minMax = d3.extent(Object.values(stateDict));
       console.log(minMax);
-
-      // const colors = d3.scaleSequential(d3.interpolateBlues);
-
-      // const colorScale = d3.scaleQuantile()
-      //   .domain(minMax)
-      //   .range(colors);
 
       const colorScale = d3.scaleQuantile()
         .domain(Object.values(stateDict))
@@ -167,17 +138,12 @@
       function mouseEntersState() {
         tooltip.style("visibility", "visible")
 
-        //let stateID = state.datum().id;
-        // let stateDat = stateDict[stateID]
-        //let totalVaccinations = stateDict[stateID];
         let state = d3.select(this);
         let stateID = state.datum().id;
         let stateName = codeDict[stateID];
         let totalVaccinations = stateDict[stateName];
 
-        // txt.text(stateDat.state_name);
-        // txt2.text(stateDat.total);
-        txt.text(stateName);  // Display state ID as state name
+        txt.text(stateName);
         txt2.text(totalVaccinations ? `Total: ${totalVaccinations}` : "Data unavailable");
 
 
@@ -209,9 +175,7 @@
 
       svg.call(zoom.transform, d3.zoomIdentity);
 
-
-      // This time we're using *destructuring assignments* to directly get the values we need
-      // Check out these docs: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment
+      // referenced zooming and panning lecture
       function mapZoomed({ transform }) {
         map.attr("transform", transform.toString());
 
@@ -220,7 +184,7 @@
       }
 
 
-      // BONUS: Click on a state/county to zoom in on it!
+      // Click on a state/county to zoom in on it, and again to zoom out
       map.selectAll(".state").on("click", clicked);
 
       var stateClicked = false;
