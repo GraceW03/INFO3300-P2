@@ -1,0 +1,19 @@
+.state {
+  fill: lightgrey;
+}
+
+.outline {
+  fill: none;
+  stroke: black;
+  stroke-width: 1px;
+}
+
+.graticule {
+  fill: none;
+  stroke: grey;
+  stroke-width: 1px;
+}
+
+.tooltip {
+  pointer-events: none;
+}

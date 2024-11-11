@@ -2,12 +2,212 @@
 
 <head>
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://d3js.org/topojson.v3.min.js"></script>
+  <link rel="stylesheet" href="styles/style.css">
 </head>
+
+
+<style>
+  .state {
+    fill: lightgrey;
+  }
+
+  .outline {
+    fill: none;
+    stroke: black;
+    stroke-width: 1px;
+  }
+
+  .graticule {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1px;
+  }
+
+  .tooltip {
+    pointer-events: none;
+  }
+</style>
 
 <body>
 
-  <svg id="vis1" height="600" width="800"></svg>
+  <!-- Scrolling bar for timeline, TODO -->
 
+  <!-- First SVG section with interactive map + bar charts -->
+  <svg id="choropleth" height="500" width="600"></svg>
+  <svg id="bar1" height="500" width="400"></svg>
+  <svg id="bar2" height="500" width="400"></svg>
+
+  <script>
+    const requestData = async function () {
+      const svg = d3.select("#choropleth");
+      const width = svg.attr("width");
+      const height = svg.attr("height");
+      const margin = { top: 20, right: 20, bottom: 20, left: 20 };
+      const mapWidth = width - margin.left - margin.right;
+      const mapHeight = height - margin.top - margin.bottom;
+
+      /*************************** Create the map **************************/
+      const us = await d3.json("./data/us-smaller.json"); // what's up with the period??? ask TA
+      var states = topojson.feature(us, us.objects.states);
+      var statesMesh = topojson.mesh(us, us.objects.states);
+      var projection = d3.geoAlbersUsa().fitSize([mapWidth, mapHeight], states);
+      var path = d3.geoPath().projection(projection);
+      console.log(states);
+      console.log(statesMesh);
+
+      const map = svg.append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+      /********** CODE FROM NOTES IDK WHAT IS GOING ON ***************/
+      // draws the projection lines for the globe (can remove later)
+      // let graticule = d3.geoGraticule10();
+      // console.log(graticule);
+      // map.append("path").attr("class", "graticule").attr("d", path(graticule));
+
+
+      // 2c. Draw states and outlines (see CSS at the top)
+      let statePaths = map.selectAll("path.state").data(states.features)
+        .join("path")
+        .attr("class", "state")
+        .attr("note", d => d.id)  // debugging
+        .attr("d", path)
+        .on('mouseover', mouseEntersState)
+        .on('mouseout', mouseLeavesState); // TODO
+
+      map.append("path").datum(statesMesh)
+        .attr("class", "outline")
+        .attr("d", path);
+
+      /********** END NOTES ***************/
+
+
+      /********** Upload data for map ***************/
+      const vaccineData = await d3.csv("./data/us_state_vaccinations.csv", d3.autoType);
+
+      // aggregate data by state, get total and add it
+      var stateDict = {}   // stateID ===> stateData
+      vaccineData.forEach(d => {
+        if (stateDict[d.location]) {
+          stateDict[d.location] += d.total_vaccinations;
+        } else {
+          stateDict[d.location] = d.total_vaccinations
+        };
+      });
+
+      const minMax = d3.extent(Object.values(stateDict));
+      console.log(minMax);
+
+      // const colors = d3.scaleSequential(d3.interpolateBlues);
+
+      // const colorScale = d3.scaleQuantile()
+      //   .domain(minMax)
+      //   .range(colors);
+
+      const colorScale = d3.scaleQuantile()
+        .domain(Object.values(stateDict))
+        .range(["#fff", "#d1e8ed", "#adc2da", "#8879b3", "#762b80"]);
+
+      console.log(stateDict);
+
+
+      const stateCodes = await d3.csv("./data/state_codes.csv", d3.autoType);
+      var codeDict = {}
+      stateCodes.forEach(d => {
+        codeDict[d.state_code] = d.state_name;
+      });
+
+      console.log(codeDict);
+
+
+      map.selectAll(".state")
+        .style("fill", d => {
+          console.log(stateDict[codeDict[d.id]]);
+          console.log(colorScale(stateDict[codeDict[d.id]]));
+          return colorScale(stateDict[codeDict[d.id]]);
+        });
+
+
+
+      //hover and add box for a more detailed view into the data
+
+      let tooltipWidth = 120;
+      let tooltipHeight = 40;
+
+      let momesh = map.append("path")
+        .attr("class", "mouseover outline")
+        .style("stroke", "black")
+        .style("stroke-width", 3)
+        .attr("d", "");
+
+      let tooltip = map.append("g")
+        .attr("class", "tooltip")
+        .attr("visibility", "hidden");
+      tooltip.append("rect")
+        .attr("fill", "black")
+        .attr("opacity", 0.9)
+        .attr("x", -tooltipWidth / 2.0)
+        .attr("y", 0)
+        .attr("width", tooltipWidth)
+        .attr("height", tooltipHeight)
+      let txt = tooltip.append("text")
+        .attr("fill", "white")
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "hanging")
+        .attr("x", 0)
+        .attr("y", 2)
+        .attr("font-size", "10px");
+      let txt2 = tooltip.append("text")
+        .attr("fill", "white")
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "hanging")
+        .attr("x", 0)
+        .attr("y", 22)
+        .attr("font-size", "10px");
+
+      function mouseEntersState() {
+        tooltip.style("visibility", "visible")
+
+        //let stateID = state.datum().id;
+        // let stateDat = stateDict[stateID]
+        //let totalVaccinations = stateDict[stateID];
+        let state = d3.select(this);
+        let stateID = state.datum().id;
+        let stateName = codeDict[stateID];
+        let totalVaccinations = stateDict[stateName];
+
+        // txt.text(stateDat.state_name);
+        // txt2.text(stateDat.total);
+        txt.text(stateName);  // Display state ID as state name
+        txt2.text(totalVaccinations ? `Total: ${totalVaccinations}` : "Data unavailable");
+
+
+        let bounds = path.bounds(state.datum());
+        let xPos = (bounds[0][0] + bounds[1][0]) / 2.0;
+        let yPos = bounds[1][1] - 15;
+
+        tooltip.attr("transform", `translate(${xPos},${yPos})`);
+
+        var mo = topojson.mesh(us, us.objects.states, function (a, b) { return a.id === stateID || b.id === stateID; });
+        momesh.datum(mo).attr("d", path)
+
+      }
+
+      function mouseLeavesState() {
+        tooltip.style("visibility", "hidden");
+
+        let state = d3.select(this);
+        momesh.attr("d", "");
+
+      }
+
+    }
+    requestData();
+
+  </script>
+
+  <!-- Line graph -->
 
 </body>
 
