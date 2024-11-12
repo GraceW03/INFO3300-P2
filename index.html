@@ -10,17 +10,17 @@
 
 <body>
 
-
+  <div>
+    <button onclick="update(2021)">2021</button>
+    <button onclick="update(2022)">2022</button>
+    <button onclick="update(2023)">2023</button>
+    <button onclick="update('total')">Total</button>
+  </div>
 
   <!-- First SVG section with interactive map + bar charts -->
   <svg id="choropleth" height="500" width="600"></svg>
   <svg id="bar1" height="250" width="400"></svg>
   <svg id="bar2" height="250" width="400"></svg>
-
-  <!-- Scrolling bar for timeline -->
-  <input type="range" id="slider-value" name="slider-value" value="0" min="0" max="100" step="1"
-    style="width: 1000px; margin-top: 10px;" />
-  <label for="slider-value" id="date">Date: </label>
 
   <script>
     const requestData = async function () {
@@ -66,38 +66,37 @@
 
       /********** Upload data for map ***************/
       const vaccineData = await d3.csv("./data/us_state_vaccinations.csv", d3.autoType);
+      const stateCodes = await d3.csv("./data/state_codes.csv", d3.autoType);
 
       // aggregate data by state, get total and add it
       var stateDict = {}   // stateID ===> stateData
-      vaccineData.forEach(d => {
-        if (stateDict[d.location]) {
-          stateDict[d.location] += d.total_vaccinations;
-        } else {
-          stateDict[d.location] = d.total_vaccinations;
-        };
-      });
-
-      const minMax = d3.extent(Object.values(stateDict));
-      console.log(minMax);
-
-      const colorScale = d3.scaleQuantile()
-        .domain(Object.values(stateDict))
-        .range(["#ddd", "#d1e8ed", "#adc2da", "#8879b3", "#762b80"]);
-
-      console.log(stateDict);
-
-
-      const stateCodes = await d3.csv("./data/state_codes.csv", d3.autoType);
       var codeDict = {}
       stateCodes.forEach(d => {
         codeDict[d.state_code] = d.state_name;
       });
 
-
-      map.selectAll(".state")
-        .style("fill", d => {
-          return colorScale(stateDict[codeDict[d.id]]);
+      function addYears(year) {
+        stateDict = {}; // Reset stateDict for each year
+        vaccineData.forEach(d => {
+          const dataYear = new Date(d.date).getFullYear();
+          if (year === 'total' || dataYear === year) {
+            stateDict[d.location] = (stateDict[d.location] || 0) + d.total_vaccinations;
+          }
         });
+      }
+
+      // Updates the map with color based on year
+      function update(year) {
+        addYears(year);
+        const colorScale = d3.scaleQuantile()
+          .domain(Object.values(stateDict))
+          .range(["#ddd", "#d1e8ed", "#adc2da", "#8879b3", "#762b80"]);
+
+        svg.selectAll(".state")
+          .style("fill", d => colorScale(stateDict[codeDict[d.id]]));
+
+        console.log(`Map updated for year: ${year}`);
+      }
 
       //hover and add box for a more detailed view into the data
 
@@ -223,6 +222,9 @@
           stateClicked = true;
         }
       }
+      update(2021);
+
+      window.update = update;
     }
 
     requestData();
