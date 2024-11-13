@@ -41,7 +41,7 @@
     const svg = d3.select("svg#lineplot");
     const width = svg.attr("width");
     const height = svg.attr("height");
-    const margin = { top: 10, right: 10, bottom: 50, left: 50 };
+    const margin = { top: 10, right: 10, bottom: 50, left: 100 };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
 
@@ -59,45 +59,102 @@
           d['month'] = timeFormatter(d['date']);
         });
 
-        console.log(data);
+        // console.log(data);
+
+        // let stateDict = {}; // stateID ===> stateData
+        // data.forEach(d => {
+        //   if (stateDict[d.location]) {
+        //     let stateData = stateDict[d.location];
+        //     if (stateData[d.month]) {
+        //       if (d.people_fully_vaccinated != null)
+        //       stateData['people_fully_vaccinated'] += d.people_fully_vaccinated;
+        //     }
+        //     else month[d.month] = 
+        //   } else {
+        //     stateDict[d.location] = [{ month: d.month, people_fully_vaccinated: d.people_fully_vaccinated }];
+        //   }
+        // });
 
         let stateDict = {}; // stateID ===> stateData
         data.forEach(d => {
           if (stateDict[d.location]) {
-            stateDict[d.location].push({ month: d.month, people_fully_vaccinated: d.people_fully_vaccinated });
+            if (d.people_fully_vaccinated != null) // check this bc null is weird and i forgot
+              stateDict[d.location].push({ month: d.month, people_fully_vaccinated: d.people_fully_vaccinated });
           } else {
             stateDict[d.location] = [{ month: d.month, people_fully_vaccinated: d.people_fully_vaccinated }];
           }
         });
 
+        // combine values
+        // referenced https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object
+        const combinedData = {}
+        Object.entries(stateDict).forEach(([stateName, dataArray]) => {
+          const monthData = {};
+          dataArray.forEach((m, v) => {
+            if (!monthData[m]) {
+              monthData[m] = { month: m, people_fully_vaccinated: 0 };
+            }
+            monthData[m].people_fully_vaccinated += v;
+          });
+          combinedData[stateName] = Object.values(monthData); //cite object documentation
+        });
+        console.log(combinedData);
+
         const flatData = Object.keys(stateDict).map(state => ({
           state,
           values: stateDict[state].filter(d => d.people_fully_vaccinated != null)
         }));
+        console.log("flatData");
+        console.log(flatData);
 
-        const allMonths = Array.from(new Set(data.map(d => d.month))).sort();
+        // aggregate flat data together by month
+        // TODO bc this doesn't work
+        flatData.forEach(state => {
+          let arr = state.values;
+
+          const monthData = {};
+          arr.forEach((m, v) => {
+            if (!monthData[m]) {
+              monthData[m] = { month: m, people_fully_vaccinated: v };
+            }
+            else
+              monthData[m].people_fully_vaccinated += v;
+          });
+          // {"01-2020": {month: "01-2020", ppl: 10000}, 
+          //  "02-2020": {month: "02-2020", ppl: 10000}}
+          state.values = Object.values(monthData);
+
+        });
+        console.log(flatData);
+
+        const allMonths = Array.from(new Set(data.map(d => d.month))).sort(); // this is not working apparently
         const yExtent = d3.extent(data, d => d.people_fully_vaccinated);
         const xScale = d3.scalePoint().domain(allMonths).range([0, chartWidth]);
         const yScale = d3.scaleLinear().domain(yExtent).range([chartHeight, 0]);
 
-
         // // Add axes
+        let leftAxis = d3.axisLeft(yScale);
         annotations.append("g")
           .attr("class", "y axis")
           .attr("transform", `translate(${margin.left - 10}, ${margin.top})`)
-          .call(d3.axisLeft(yScale));
+          .call(leftAxis);
 
+        let bottomAxis = d3.axisBottom(xScale);
+        // .tickValues(allMonths)
+        // .tickFormat(d3.timeFormat("%Y-%m"));
         annotations.append("g")
           .attr("class", "x axis")
           .attr("transform", `translate(${margin.left}, ${chartHeight + margin.top + 10})`)
-          .call(d3.axisBottom(xScale).tickValues(allMonths).tickFormat(d3.timeFormat("%Y-%m")));
+          .call(bottomAxis);
 
         // // Create line generator
         const lineGen = d3.line()
           .x(d => xScale(d.month))
-          .y(d => yScale(d.distributed_per_hundred))
-          .defined(d => !isNaN(d.distributed_per_hundred)) // Skip NaN values
+          .y(d => yScale(d.people_fully_vaccinated))
+          //          .defined(d => !isNaN(d.distributed_per_hundred)) // Skip NaN values //chat
           .curve(d3.curveMonotoneX);
+
+        console.log(Object.entries(stateDict));
 
         // // Draw lines for each state
         flatData.forEach(stateData => {
@@ -111,6 +168,20 @@
             .append("title")
             .text(stateData.state);
         });
+
+        // Object.entries(combinedData).forEach(([state, stateData]) => {
+        //   console.log(stateData);
+        //   chartArea.append("path")
+        //     .datum(stateData)
+        //     .attr("class", "line")
+        //     .attr("d", lineGen)
+        //     // .attr("stroke", d3.schemeCategory10[Object.keys(stateData).indexOf(state) % 10]) //chat gpt
+        //     .attr("stroke", "black")
+        //     .attr("stroke-width", 2)
+        //     .attr("fill", "none")
+        //     .append("title")
+        //     .text(state);
+        // });
 
       });
 
