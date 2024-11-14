@@ -61,20 +61,6 @@
 
         // console.log(data);
 
-        // let stateDict = {}; // stateID ===> stateData
-        // data.forEach(d => {
-        //   if (stateDict[d.location]) {
-        //     let stateData = stateDict[d.location];
-        //     if (stateData[d.month]) {
-        //       if (d.people_fully_vaccinated != null)
-        //       stateData['people_fully_vaccinated'] += d.people_fully_vaccinated;
-        //     }
-        //     else month[d.month] = 
-        //   } else {
-        //     stateDict[d.location] = [{ month: d.month, people_fully_vaccinated: d.people_fully_vaccinated }];
-        //   }
-        // });
-
         let stateDict = {}; // stateID ===> stateData
         data.forEach(d => {
           if (stateDict[d.location]) {
@@ -85,50 +71,38 @@
           }
         });
 
-        // combine values
         // referenced https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object
-        const combinedData = {}
-        Object.entries(stateDict).forEach(([stateName, dataArray]) => {
-          const monthData = {};
-          dataArray.forEach((m, v) => {
-            if (!monthData[m]) {
-              monthData[m] = { month: m, people_fully_vaccinated: 0 };
-            }
-            monthData[m].people_fully_vaccinated += v;
-          });
-          combinedData[stateName] = Object.values(monthData); //cite object documentation
-        });
-        console.log(combinedData);
-
         const flatData = Object.keys(stateDict).map(state => ({
           state,
           values: stateDict[state].filter(d => d.people_fully_vaccinated != null)
         }));
-        console.log("flatData");
-        console.log(flatData);
 
         // aggregate flat data together by month
-        // TODO bc this doesn't work
         flatData.forEach(state => {
           let arr = state.values;
 
           const monthData = {};
-          arr.forEach((m, v) => {
-            if (!monthData[m]) {
-              monthData[m] = { month: m, people_fully_vaccinated: v };
+          arr.forEach(n => {
+            if (!monthData[n.month]) {
+              monthData[n.month] = { month: n.month, people_fully_vaccinated: n.people_fully_vaccinated };
             }
             else
-              monthData[m].people_fully_vaccinated += v;
+              monthData[n.month].people_fully_vaccinated += n.people_fully_vaccinated;
           });
           // {"01-2020": {month: "01-2020", ppl: 10000}, 
           //  "02-2020": {month: "02-2020", ppl: 10000}}
           state.values = Object.values(monthData);
-
         });
-        console.log(flatData);
+
+        // referenced https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap
+        const vaccinations = flatData.flatMap(stateData =>
+          stateData.values.map(month => month.people_fully_vaccinated)
+        );
 
         const allMonths = Array.from(new Set(data.map(d => d.month))).sort(); // this is not working apparently
-        const yExtent = d3.extent(data, d => d.people_fully_vaccinated);
+        const yExtent = d3.extent(vaccinations);
+        console.log(yExtent);
+        // const yExtent = d3.extent(data, d => d.people_fully_vaccinated);
         const xScale = d3.scalePoint().domain(allMonths).range([0, chartWidth]);
         const yScale = d3.scaleLinear().domain(yExtent).range([chartHeight, 0]);
 
