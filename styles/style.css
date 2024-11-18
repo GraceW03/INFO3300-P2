@@ -1,3 +1,11 @@
+.navbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #5293BB;
+  padding: 10px;
+}
+
 .state {
   fill: lightgrey;
 }
