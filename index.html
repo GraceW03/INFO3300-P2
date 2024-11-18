@@ -25,13 +25,17 @@
   <!-- First SVG section with interactive map + bar charts -->
   <svg id="choropleth" height="500" width="600"></svg>
 
-  <!-- manufacturer bar graph -->
-  <svg id="barchart" height="500" width="500"></svg>
+  <br>
 
   <!-- line graph -->
   <h3>New People Fully Vaccinated Over Time, by State</h3>
   <svg id="lineplot" height="500" width="800" style="margin-top:50px">
   </svg>
+
+  <br>
+
+  <!-- manufacturer bar graph -->
+  <svg id="barchart" height="500" width="600"></svg>
 
   <script>
 
@@ -251,12 +255,12 @@
     }
     requestData();
 
-    /************************* Bar graph code **********************/
+    /************************* Bar graph code *************************/
     const bargraph = async function () {
       const svg = d3.select("svg#barchart");
       const width = svg.attr("width");
       const height = svg.attr("height");
-      const margin = { top: 10, right: 10, bottom: 50, left: 100 };
+      const margin = { top: 10, right: 10, bottom: 70, left: 100 };
       const chartWidth = width - margin.left - margin.right;
       const chartHeight = height - margin.top - margin.bottom;
 
@@ -332,7 +336,7 @@
             .domain(manufacturers)
             .range(d3.schemeCategory10);
 
-          // // Add axes
+          // Add axes
           let leftAxis = d3.axisLeft(yScale);
           annotations.append("g")
             .attr("class", "y axis")
@@ -348,10 +352,9 @@
             .call(bottomAxis)
             .selectAll("text")
             .style("text-anchor", "end")
-            .attr("dx", "-.8em")
-            .attr("dy", ".15em")
+            .attr("dx", "-10")
+            .attr("dy", "2")
             .attr("transform", "rotate(-65)");
-
 
           chartArea.append("g")
             .selectAll("g")
@@ -368,7 +371,7 @@
             .attr("x", function (d) { return xSubgroupScale(d.key); })
             .attr("y", function (d) { return yScale(d.value); })
             .attr("width", xSubgroupScale.bandwidth())
-            .attr("height", function (d) { return height - yScale(d.value); })
+            .attr("height", function (d) { return chartHeight - yScale(d.value); })
             .attr("fill", function (d) { return colorScale(d.key); });
 
         });
@@ -445,7 +448,7 @@
         const xScale = d3.scalePoint().domain(allMonths).range([0, chartWidth]);
         const yScale = d3.scaleLinear().domain(yExtent).range([chartHeight, 0]);
 
-        // // Add axes
+        // Add axes
         let leftAxis = d3.axisLeft(yScale);
         annotations.append("g")
           .attr("class", "y axis")
@@ -461,8 +464,8 @@
           .call(bottomAxis)
           .selectAll("text")
           .style("text-anchor", "end")
-          .attr("dx", "-.8em")
-          .attr("dy", ".15em")
+          .attr("dx", "-10")
+          .attr("dy", "2")
           .attr("transform", "rotate(-65)");
 
         // // Create line generator
