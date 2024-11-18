@@ -92,7 +92,7 @@
       });
 
 
-      let currentYear = 2021;
+      let currentYear = "total";
       let selectedMetric = 'total_vaccinations';  // Default metric is total vaccinations
       // Function to change the metric based on button clicks
       function changeMetric(metric) {
@@ -113,6 +113,7 @@
       // Updates the map with color based on year
       function update(year) {
         addYears(year);
+        currentYear = year;
         const colorScale = d3.scaleQuantile()
           .domain(Object.values(stateDict))
           .range(["#ddd", "#d1e8ed", "#adc2da", "#8879b3", "#762b80"]);
@@ -249,7 +250,7 @@
       }
       window.changeMetric = changeMetric;
 
-      update(2021);
+      update(currentYear);
 
       window.update = update;
     }
