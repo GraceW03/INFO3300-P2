@@ -1,16 +1,21 @@
 <html>
 
+
 <head>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://d3js.org/topojson.v3.min.js"></script>
   <link rel="stylesheet" href="styles/style.css">
 </head>
 
+
 <!-- put any CSS in styles/style.css -->
+
 
 <body>
 
+
   <h3>COVID-19 Vaccinations across the US from 2021-2023</h3>
+
 
   <div class="navbar">
     <button onclick="update(2021)">2021</button>
@@ -19,32 +24,40 @@
     <button onclick="update('total')">Total</button>
   </div>
 
+
   <div>
-    <button onclick="changeMetric('total_vaccinations')">Total Vaccinations</button>
-    <button onclick="changeMetric('people_fully_vaccinated')">People Fully Vaccinated</button>
-    <button onclick="changeMetric('total_boosters')">Boosters</button>
+    <button onclick="variableChange('total_vaccinations')">Total Vaccinations</button>
+    <button onclick="variableChange('people_fully_vaccinated')">People Fully Vaccinated</button>
+    <button onclick="variableChange('total_boosters')">Boosters</button>
   </div>
+
 
   <!-- First SVG section with interactive map + bar charts -->
   <svg id="choropleth" height="500" width="600"></svg>
 
+
   <br>
+
 
   <!-- line graph -->
   <h3>New People Fully Vaccinated Over Time, by State</h3>
+  <label for="stateSelector">Select State:</label>
+  <select id="stateSelector"></select>
   <svg id="lineplot" height="500" width="800" style="margin-top:50px">
   </svg>
 
+
   <br>
+
 
   <!-- manufacturer bar graph -->
   <svg id="barchart" height="500" width="600"></svg>
 
+
   <script>
 
-    const requestData = async function () {
-      /*************************** Work with slider **************************/
 
+    const requestData = async function () {
 
       const svg = d3.select("#choropleth");
       const width = svg.attr("width");
@@ -52,6 +65,7 @@
       const margin = { top: 20, right: 20, bottom: 20, left: 20 };
       const mapWidth = width - margin.left - margin.right;
       const mapHeight = height - margin.top - margin.bottom;
+
 
       /*************************** Create the map **************************/
       // referenced October 9 lecture
@@ -62,6 +76,7 @@
       var path = d3.geoPath().projection(projection);
       console.log(states);
       console.log(statesMesh);
+
 
       const map = svg.append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -76,16 +91,18 @@
         .on('mouseover', mouseEntersState)
         .on('mouseout', mouseLeavesState);
 
+
       map.append("path").datum(statesMesh)
         .attr("class", "outline")
         .attr("d", path);
 
-      /********** END NOTES ***************/
+
 
 
       /********** Upload data for map ***************/
       const vaccineData = await d3.csv("./data/us_state_vaccinations.csv", d3.autoType);
       const stateCodes = await d3.csv("./data/state_codes.csv", d3.autoType);
+
 
       // aggregate data by state, get total and add it
       var stateDict = {}   // stateID ===> stateData
@@ -96,24 +113,23 @@
 
 
       let currentYear = "total";
-      let selectedMetric = 'total_vaccinations';  // Default metric is total vaccinations
-      // Function to change the metric based on button clicks
-      function changeMetric(metric) {
-        selectedMetric = metric;
-        update(currentYear);  // Re-render the map with the new metric and the current year
+      let currentVariable = 'total_vaccinations';
+      function variableChange(variable) {
+        currentVariable = variable;
+        update(currentYear);
       }
 
+
       function addYears(year) {
-        stateDict = {}; // Reset stateDict for each year
+        stateDict = {};
         vaccineData.forEach(d => {
           const dataYear = new Date(d.date).getFullYear();
           if (year === 'total' || dataYear === year) {
-            stateDict[d.location] = (stateDict[d.location] || 0) + d[selectedMetric];
+            stateDict[d.location] = (stateDict[d.location] || 0) + d[currentVariable];
           }
         });
       }
 
-      // Updates the map with color based on year
       function update(year) {
         addYears(year);
         currentYear = year;
@@ -121,22 +137,25 @@
           .domain(Object.values(stateDict))
           .range(["#ddd", "#d1e8ed", "#adc2da", "#8879b3", "#762b80"]);
 
+
         svg.selectAll(".state")
           .style("fill", d => colorScale(stateDict[codeDict[d.id]]));
-
-        console.log(`Map updated for year: ${year}`);
       }
+
 
       //hover and add box for a more detailed view into the data
 
-      let tooltipWidth = 120;
-      let tooltipHeight = 40;
+
+      var tooltipWidth = 120;
+      var tooltipHeight = 40;
+
 
       let momesh = map.append("path")
         .attr("class", "mouseover outline")
         .style("stroke", "black")
         .style("stroke-width", 3)
         .attr("d", "");
+
 
       let tooltip = map.append("g")
         .attr("class", "tooltip")
@@ -163,35 +182,46 @@
         .attr("y", 22)
         .attr("font-size", "10px");
 
+
       function mouseEntersState() {
         tooltip.style("visibility", "visible")
+
 
         let state = d3.select(this);
         let stateID = state.datum().id;
         let stateName = codeDict[stateID];
         let totalVaccinations = stateDict[stateName];
 
+
         txt.text(stateName);
         txt2.text(totalVaccinations ? `Total: ${totalVaccinations}` : "Data unavailable");
+
+
 
 
         let bounds = path.bounds(state.datum());
         let xPos = (bounds[0][0] + bounds[1][0]) / 2.0;
         let yPos = bounds[1][1] - 15;
 
+
         tooltip.attr("transform", `translate(${xPos},${yPos})`);
+
 
         var mo = topojson.mesh(us, us.objects.states, function (a, b) { return a.id === stateID || b.id === stateID; });
         momesh.datum(mo).attr("d", path)
 
+
       }
+
 
       function mouseLeavesState() {
         tooltip.style("visibility", "hidden");
 
+
         let state = d3.select(this);
         momesh.attr("d", "");
       }
+
 
       /****************** Panning and Zooming on Map *******************/
       var zoom = d3.zoom()
@@ -199,36 +229,47 @@
         .translateExtent([[-50, -50], [mapWidth + 50, mapHeight + 50]])
         .on("zoom", mapZoomed);
 
+
       svg.call(zoom);
 
+
       svg.call(zoom.transform, d3.zoomIdentity);
+
 
       // referenced zooming and panning lecture
       function mapZoomed({ transform }) {
         map.attr("transform", transform.toString());
+
 
         map.select(".state-outline")
           .style("stroke-width", 2 / transform.k);
       }
 
 
+
+
       // Click on a state/county to zoom in on it, and again to zoom out
       map.selectAll(".state").on("click", clicked);
 
+
       var stateClicked = false;
+
 
       function clicked(event, d) { // zoom out
         console.log(d)
         if (stateClicked) {
           let translate = [margin.left, margin.right];
 
+
           let newTransform = d3.zoomIdentity
             .translate(translate[0], translate[1])
             .scale(1);
           svg.transition().duration(1000).call(zoom.transform, newTransform);
 
+
           stateClicked = false;
         }
+
 
         else { // zoom out
           // geoPath generators have a few extra functions. .bounds returns a pixel rectangle bounding the shape you give it
@@ -238,26 +279,31 @@
           let x = (bounds[0][0] + bounds[1][0]) / 2;
           let y = (bounds[0][1] + bounds[1][1]) / 2;
 
+
           let scale = Math.max(1, Math.min(10, 0.9 / Math.max(dx / mapWidth,
             dy / mapHeight)));
 
+
           let translate = [mapWidth / 2 - x * scale, mapHeight / 2 - y * scale];
+
 
           let newTransform = d3.zoomIdentity
             .translate(translate[0], translate[1])
             .scale(scale);
           svg.transition().duration(1000).call(zoom.transform, newTransform);
 
+
           stateClicked = true;
         }
       }
-      window.changeMetric = changeMetric;
+      window.variableChange = variableChange;
 
       update(currentYear);
 
       window.update = update;
     }
     requestData();
+
 
     /************************* Bar graph code *************************/
     const bargraph = async function () {
@@ -268,19 +314,25 @@
       const chartWidth = width - margin.left - margin.right;
       const chartHeight = height - margin.top - margin.bottom;
 
+
       let annotations = svg.append("g").attr("id", "annotations");
       let chartArea = svg.append("g").attr("id", "bars")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
 
+
+
       d3.csv("./data/us_vaccine_manufacturer_data.csv", d3.autoType)
         .then((data) => {
 
+
           const timeFormatter = d3.timeFormat('%Y-%m');
+
 
           data.forEach(d => {
             d['month'] = timeFormatter(d['date']);
           });
+
 
           let monthDict = {}; // {month: {vaccine: total_vaccinations}}
           data.forEach(d => {
@@ -288,6 +340,7 @@
             if (!monthDict[d.month][d.vaccine]) monthDict[d.month][d.vaccine] = 0;
             monthDict[d.month][d.vaccine] += d.total_vaccinations;
           });
+
 
           let flatData = [];
           for (let month in monthDict) {
@@ -298,7 +351,9 @@
             flatData.push(row);
           }
 
+
           const manufacturers = Array.from(new Set(data.map(d => d.vaccine)));
+
 
           flatData.forEach(row => {
             manufacturers.forEach(manufacturer => {
@@ -308,20 +363,25 @@
             });
           });
 
+
           console.log("data for bar graph");
           console.log(flatData);
 
+
           const allMonths = flatData.map(d => d.month).sort();
+
 
           const xScale = d3.scaleBand()
             .domain(allMonths)
             .range([0, chartWidth])
             .padding(0.1);
 
+
           const xSubgroupScale = d3.scaleBand()
             .domain(manufacturers)
             .range([0, xScale.bandwidth()])
             .padding(0.05);
+
 
           // referenced https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap
           const manufacturerArray = flatData.flatMap(month => [
@@ -330,15 +390,19 @@
             month['Johnson&Johnson']
           ]);
 
+
           const yExtent = d3.extent(manufacturerArray);
+
 
           const yScale = d3.scaleLinear()
             .domain([0, yExtent[1]])
             .range([chartHeight, 0]);
 
+
           const colorScale = d3.scaleOrdinal()
             .domain(manufacturers)
             .range(d3.schemeCategory10);
+
 
           // Add axes
           let leftAxis = d3.axisLeft(yScale);
@@ -346,6 +410,7 @@
             .attr("class", "y axis")
             .attr("transform", `translate(${margin.left - 10}, ${margin.top})`)
             .call(leftAxis);
+
 
           // referenced http://www.d3noob.org/2013/01/how-to-rotate-text-labels-for-x-axis-of.html
           // for help rotating axis text
@@ -359,6 +424,7 @@
             .attr("dx", "-10")
             .attr("dy", "2")
             .attr("transform", "rotate(-65)");
+
 
           chartArea.append("g")
             .selectAll("g")
@@ -378,10 +444,13 @@
             .attr("height", function (d) { return chartHeight - yScale(d.value); })
             .attr("fill", function (d) { return colorScale(d.key); });
 
+
         });
+
 
     }
     bargraph();
+
 
     /************************* Line graph code **********************/
     const svg = d3.select("svg#lineplot");
@@ -391,31 +460,46 @@
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
 
+
     let annotations = svg.append("g").attr("id", "annotations");
     let chartArea = svg.append("g").attr("id", "points")
       .attr("transform", `translate(${margin.left},${margin.top})`);
+
 
     // Import some CSV data
     d3.csv("./data/us_state_vaccinations.csv", d3.autoType)
       .then((data) => {
 
+
         const timeFormatter = d3.timeFormat('%Y-%m');
+
 
         data.forEach(d => {
           d['month'] = timeFormatter(d['date']);
         });
 
+
         // console.log(data);
 
-        let stateDict = {}; // stateID ===> stateData
+
+        const excludedLocations = ["United States", "Guam", 'Bureau of Prisons',
+          'Dept of Defense', 'Federated States of Micronesia', 'Indian Health Svc',
+          'Long Term Care', 'Marshall Islands', 'Northern Mariana Island',
+          'Republic of Palau', 'Veterans Health'
+        ];
+        let stateDict = {};
         data.forEach(d => {
-          if (stateDict[d.location]) {
-            if (d.people_fully_vaccinated != null) // check this bc null is weird and i forgot
+          if (!excludedLocations.includes(d.location)) { // Exclude "United States"
+            // Ensure stateDict[d.location] is initialized
+            if (!stateDict[d.location]) {
+              stateDict[d.location] = [];
+            }
+            if (d.people_fully_vaccinated != null) { // Check for non-null values
               stateDict[d.location].push({ month: d.month, people_fully_vaccinated: d.people_fully_vaccinated });
-          } else {
-            stateDict[d.location] = [{ month: d.month, people_fully_vaccinated: d.people_fully_vaccinated }];
+            }
           }
         });
+
 
         // referenced https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object
         const flatData = Object.keys(stateDict).map(state => ({
@@ -423,9 +507,11 @@
           values: stateDict[state].filter(d => d.people_fully_vaccinated != null)
         }));
 
+
         // aggregate flat data together by month
         flatData.forEach(state => {
           let arr = state.values;
+
 
           const monthData = {};
           arr.forEach(n => {
@@ -435,15 +521,17 @@
             else
               monthData[n.month].people_fully_vaccinated += n.people_fully_vaccinated;
           });
-          // {"01-2020": {month: "01-2020", ppl: 10000}, 
+          // {"01-2020": {month: "01-2020", ppl: 10000},
           //  "02-2020": {month: "02-2020", ppl: 10000}}
           state.values = Object.values(monthData);
         });
+
 
         // referenced https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap
         const vaccinations = flatData.flatMap(stateData =>
           stateData.values.map(month => month.people_fully_vaccinated)
         );
+
 
         const allMonths = Array.from(new Set(data.map(d => d.month))).sort(); // this is not working apparently
         const yExtent = d3.extent(vaccinations);
@@ -452,12 +540,14 @@
         const xScale = d3.scalePoint().domain(allMonths).range([0, chartWidth]);
         const yScale = d3.scaleLinear().domain(yExtent).range([chartHeight, 0]);
 
+
         // Add axes
         let leftAxis = d3.axisLeft(yScale);
         annotations.append("g")
           .attr("class", "y axis")
           .attr("transform", `translate(${margin.left - 10}, ${margin.top})`)
           .call(leftAxis);
+
 
         // referenced http://www.d3noob.org/2013/01/how-to-rotate-text-labels-for-x-axis-of.html
         // for help rotating axis text
@@ -472,6 +562,7 @@
           .attr("dy", "2")
           .attr("transform", "rotate(-65)");
 
+
         // // Create line generator
         const lineGen = d3.line()
           .x(d => xScale(d.month))
@@ -479,23 +570,69 @@
           //          .defined(d => !isNaN(d.distributed_per_hundred)) // Skip NaN values //chat
           .curve(d3.curveMonotoneX);
 
-        // // Draw lines for each state
-        flatData.forEach(stateData => {
-          chartArea.append("path")
-            .datum(stateData.values)
-            .attr("class", "line")
-            .attr("d", lineGen)
-            .attr("stroke", d3.schemeCategory10[Object.keys(stateDict).indexOf(stateData.state) % 10])
-            .attr("stroke-width", 2)
-            .attr("fill", "none")
-            .append("title")
-            .text(stateData.state);
+
+        const filteredStates = Object.keys(stateDict).filter(state => state !== "United States");
+
+
+
+
+        const stateSelector = d3.select("#stateSelector");
+        stateSelector.selectAll("option")
+          .data(["All States"].concat(filteredStates))
+          .enter()
+          .append("option")
+          .attr("value", d => d)
+          .text(d => d);
+
+
+        // Function to update chart based on selected state
+        function updateChart(selectedState) {
+          chartArea.selectAll(".line").remove();
+
+
+          const filteredData = selectedState === "All States"
+            ? flatData
+            : flatData.filter(d => d.state === selectedState);
+
+
+          filteredData.forEach(stateData => {
+            chartArea.append("path")
+              .datum(stateData.values)
+              .attr("class", "line")
+              .attr("d", lineGen)
+              .attr("stroke", d3.schemeCategory10[Object.keys(stateDict).indexOf(stateData.state) % 10])
+              .attr("stroke-width", 2)
+              .attr("fill", "none")
+              .on("mouseover", function (event, d) {
+                d3.select(this)
+                  .attr("stroke-width", 4); // Bolden the line
+                stateLabel
+                  .text(stateData.state) // Display the state name
+                  .style("visibility", "visible");
+              })
+              .on("mouseout", function () {
+                d3.select(this)
+                  .attr("stroke-width", 2); // Reset the line width
+                stateLabel.style("visibility", "hidden"); // Hide the label
+              })
+              .append("title") // Tooltip for state name
+              .text(stateData.state);
+          });
+        }
+
+
+        // Initial render with all states
+        updateChart("All States");
+
+
+        // Add event listener for dropdown menu
+        stateSelector.on("change", function () {
+          const selectedState = d3.select(this).property("value");
+          updateChart(selectedState);
         });
-
-      })
-
+      });
   </script>
-
 </body>
+
 
 </html>
