@@ -14,38 +14,47 @@
 <body>
 
 
-  <h3>COVID-19 Vaccinations across the US from 2021-2023</h3>
+  <div class="top">
+    <h1>Combatting COVID-19: A Visualization of US Vaccinations</h1>
 
-
-  <div class="navbar">
-    <button onclick="update(2021)">2021</button>
-    <button onclick="update(2022)">2022</button>
-    <button onclick="update(2023)">2023</button>
-    <button onclick="update('total')">Total</button>
+    <div class="navbar">
+      Filter by:
+      <button onclick="update(2021)">2021</button>
+      <button onclick="update(2022)">2022</button>
+      <button onclick="update(2023)">2023</button>
+      <button onclick="update('total')">All Years</button>
+    </div>
   </div>
 
+  <div class="content">
 
-  <div>
-    <button onclick="variableChange('total_vaccinations')">Total Vaccinations</button>
-    <button onclick="variableChange('people_fully_vaccinated')">People Fully Vaccinated</button>
-    <button onclick="variableChange('total_boosters')">Boosters</button>
+    <h3>COVID-19 Vaccinations across the US from 2021-2023</h3>
+
+    <div>
+      <button onclick="variableChange('total_vaccinations')">Total Vaccinations</button>
+      <button onclick="variableChange('people_fully_vaccinated')">People Fully Vaccinated</button>
+      <button onclick="variableChange('total_boosters')">Boosters</button>
+    </div>
+
+
+    <!-- First SVG section with interactive map + bar charts -->
+    <svg id="choropleth" height="500" width="600"></svg>
+
   </div>
-
-
-  <!-- First SVG section with interactive map + bar charts -->
-  <svg id="choropleth" height="500" width="600"></svg>
-
-
   <br>
 
 
   <!-- line graph -->
-  <h3>New People Fully Vaccinated Over Time, by State</h3>
-  <label for="stateSelector">Select State:</label>
-  <select id="stateSelector"></select>
-  <svg id="lineplot" height="500" width="800" style="margin-top:50px">
-  </svg>
 
+  <div class=linegraph>
+
+    <h3>New People Fully Vaccinated Over Time, by State</h3>
+    <label for="stateSelector">Select State:</label>
+    <select id="stateSelector"></select>
+
+    <svg id="lineplot" height="500" width="800" style="margin-top:50px">
+    </svg>
+  </div>
 
   <br>
 
