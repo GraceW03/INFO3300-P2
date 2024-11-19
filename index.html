@@ -1,22 +1,15 @@
 <html>
 
-
 <head>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://d3js.org/topojson.v3.min.js"></script>
   <link rel="stylesheet" href="styles/style.css">
 </head>
 
-
-<!-- put any CSS in styles/style.css -->
-
-
 <body>
-
 
   <div class="top">
     <h1>Combatting COVID-19: A Visualization of US Vaccinations</h1>
-
     <div class="navbar">
       Filter by:
       <button onclick="update(2021)">2021</button>
@@ -32,6 +25,7 @@
 
     <h3>COVID-19 Vaccinations across the US from 2021-2023</h3>
 
+    <!-- Creates buttons for the map -->
     <div>
       <button class="active" onclick="variableChange('total_vaccinations')">Total Vaccinations</button>
       <button onclick="variableChange('people_fully_vaccinated')">People Fully Vaccinated</button>
@@ -40,6 +34,7 @@
 
     <br>
 
+    <!-- Create map, legend, and dynamic tooltip -->
     <div class="mapContainer" style="display: flex; align-items: center;">
       <svg id="choropleth" height="500" width="600"></svg>
       <div class="mapStuff">
@@ -48,47 +43,42 @@
         <svg id="tooltipmap" height="110" width="150" style="margin-left: 20px;"></svg>
       </div>
     </div>
-
-  </div>
-  <br>
+    <br>
 
 
-  <!-- line graph -->
+    <!-- line graph -->
 
-  <div class=linegraph>
+    <div class=linegraph>
 
-    <h3>Distribution of Vaccines, by State</h3>
-    <label for="stateSelector">Select State:</label>
-    <select id="stateSelector"></select>
+      <h3>Distribution of Vaccines, by State</h3>
+      <label for="stateLine">Select State:</label>
+      <select id="stateLine"></select>
+      <br>
+      <svg id="lineplot" height="500" width="800" style="margin-top:50px">
+      </svg>
+    </div>
 
     <br>
 
-    <svg id="lineplot" height="500" width="800" style="margin-top:50px">
-    </svg>
-  </div>
 
-  <br>
+    <!-- manufacturer bar graph -->
 
+    <div class=bargraph>
 
-  <!-- manufacturer bar graph -->
+      <h3>Distribution by Manufacturer Over Time</h3>
+      <svg id="barchart" height="500" width="600"></svg>
 
-  <div class=bargraph>
-
-    <h3>Distribution by Manufacturer Over Time</h3>
-    <svg id="barchart" height="500" width="600"></svg>
-
-    <svg id="legend3" height="250" width="200"></svg>
+      <svg id="legend3" height="250" width="200"></svg>
+    </div>
   </div>
 
 
   <script>
-    var updateFunction;
-    var variableChangeFunction;
 
     /************** Function for creating map's legend *************/
     // code referenced from October 9th lecture
     function drawLegend(legendSelector, legendColorScale) {
-      console.log(legendColorScale.domain());
+      // offsets (leave space at left and bottom for the tick labels)
       const offsets = {
         width: 10,
         left: 20,
@@ -116,10 +106,10 @@
 
       let bar = legend.append("g")
         .attr("class", "legend colorbar")
-        .attr("transform", `translate(${offsets.width + offsets.left},${offsets.top})`)
+        .attr("transform", `translate(${offsets.width + offsets.left},${offsets.top})`);
 
       if (legendColorScale.hasOwnProperty('thresholds') || legendColorScale.hasOwnProperty('quantiles')) {
-        // Get the thresholds
+        // Get thresholds from data
         let thresholds = [];
         if (legendColorScale.hasOwnProperty('thresholds')) { thresholds = legendColorScale.thresholds() }
         else { thresholds = legendColorScale.quantiles() }
@@ -146,6 +136,8 @@
         }
       }
 
+      // referenced http://www.d3noob.org/2013/01/how-to-rotate-text-labels-for-x-axis-of.html
+      // for help rotating axis text
       legend.append("g")
         .attr("class", "legend axis")
         .attr("transform", `translate(${offsets.width + offsets.left},${offsets.top + barHeight + 5})`)
@@ -154,7 +146,7 @@
         .style("text-anchor", "end")
         .attr("dx", "-10")
         .attr("dy", "2")
-        .attr("transform", "rotate(-65)");;
+        .attr("transform", "rotate(-65)");
     }
 
 
@@ -197,13 +189,9 @@
         .attr("class", "outline")
         .attr("d", path);
 
-
-
-
       /********** Upload data for map ***************/
       const vaccineData = await d3.csv("./data/us_state_vaccinations.csv", d3.autoType);
       const stateCodes = await d3.csv("./data/state_codes.csv", d3.autoType);
-
 
       // aggregate data by state, get total and add it
       var stateDict = {}   // stateID ===> stateData
@@ -218,21 +206,21 @@
         update(currentYear);
       }
 
+      // referenced https://stackoverflow.com/questions/29514382/global-functions-in-javascript and
+      // https://developer.mozilla.org/en-US/docs/Web/API/Window to figure out how to make function global
       window.variableChange = variableChange;
-      variableChangeFunction = variableChange;
 
       //hover and add box for a more detailed view into the data
       var tooltipWidth = 120;
       var tooltipHeight = 40;
-      let tooltipSvg = d3.select("#tooltipmap").style("visibility", "hidden");;
-
+      let tooltipSvg = d3.select("#tooltipmap")
+        .style("visibility", "hidden");;
 
       let momesh = map.append("path")
         .attr("class", "mouseover outline")
         .style("stroke", "black")
         .style("stroke-width", 3)
         .attr("d", "");
-
 
       let tooltip = map.append("g")
         .attr("class", "tooltip")
@@ -277,13 +265,11 @@
         momesh.datum(mo).attr("d", path)
       }
 
-
       function mouseLeavesState() {
         tooltipSvg.style("visibility", "hidden");
         let state = d3.select(this);
         momesh.datum(null).attr("d", "")
       }
-
 
       /****************** Panning and Zooming on Map *******************/
       var zoom = d3.zoom()
@@ -291,22 +277,17 @@
         .translateExtent([[-50, -50], [mapWidth + 50, mapHeight + 50]])
         .on("zoom", mapZoomed);
 
-
       svg.call(zoom);
 
-
       svg.call(zoom.transform, d3.zoomIdentity);
-
 
       // referenced zooming and panning lecture
       function mapZoomed({ transform }) {
         map.attr("transform", transform.toString());
 
-
         map.select(".state-outline")
           .style("stroke-width", 2 / transform.k);
       }
-
 
       // Click on a state/county to zoom in on it, and again to zoom out
       map.selectAll(".state").on("click", clicked);
@@ -332,24 +313,19 @@
           let x = (bounds[0][0] + bounds[1][0]) / 2;
           let y = (bounds[0][1] + bounds[1][1]) / 2;
 
-
           let scale = Math.max(1, Math.min(10, 0.9 / Math.max(dx / mapWidth,
             dy / mapHeight)));
 
-
           let translate = [mapWidth / 2 - x * scale, mapHeight / 2 - y * scale];
-
 
           let newTransform = d3.zoomIdentity
             .translate(translate[0], translate[1])
             .scale(scale);
           svg.transition().duration(1000).call(zoom.transform, newTransform);
 
-
           stateClicked = true;
         }
       }
-
 
       /************************* Bar graph code *************************/
       const barsvg = d3.select("svg#barchart");
@@ -365,15 +341,14 @@
 
       const data = await d3.csv("./data/us_vaccine_manufacturer_data.csv", d3.autoType);
 
-
+      //referenced notes for a time formatter to extract year and month
       const timeFormatter = d3.timeFormat('%Y-%m');
-
 
       data.forEach(d => {
         d['month'] = timeFormatter(d['date']);
       });
 
-
+      //this is to increment the vaccine count for the month
       let monthDict = {}; // {month: {vaccine: total_vaccinations}}
       data.forEach(d => {
         if (!monthDict[d.month]) monthDict[d.month] = {};
@@ -382,12 +357,12 @@
       });
 
       function drawBars() {
-
         // referenced https://stackoverflow.com/questions/22452112/nvd3-clear-svg-before-loading-new-chart
         // to see how to clear the graph
         annotations.selectAll("*").remove();
         chartArea.selectAll("*").remove();
 
+        // to reference a direct dict - intialize a row with month as key and the vaccine count for that month 
         let flatData = [];
         for (let month in monthDict) {
           let row = { month: month };
@@ -397,29 +372,30 @@
           flatData.push(row);
         }
 
-
+        // extract the unique list of manufacturers
         const manufacturers = Array.from(new Set(data.map(d => d.vaccine)));
 
-
+        // create an aggregated format to group the month and vaccine count 
         flatData.forEach(row => {
           manufacturers.forEach(manufacturer => {
             if (!row[manufacturer]) {
-              row[manufacturer] = 0;
+              row[manufacturer] = 0; //if it doesn't include the manufactuer
             }
           });
         });
 
-
         const allMonths = flatData.map(d => d.month).sort();
 
+        // create grouped bar graph
+        // referenced https://d3-graph-gallery.com/graph/barplot_grouped_basicWide.html 
 
+        // reference https://d3js.org/d3-scale/band to figure out how to create our bars
+        // and https://www.geeksforgeeks.org/d3-js-band-bandwidth-function/
         const xScale = d3.scaleBand()
           .domain(allMonths)
           .range([0, chartWidth])
           .padding(0.1);
-
-
-        const xSubgroupScale = d3.scaleBand()
+        const manufacturerScale = d3.scaleBand()
           .domain(manufacturers)
           .range([0, xScale.bandwidth()])
           .padding(0.05);
@@ -432,19 +408,15 @@
           month['Novavax']
         ]);
 
-
         const yExtent = d3.extent(manufacturerArray);
-
 
         const yScale = d3.scaleLinear()
           .domain([0, yExtent[1]])
           .range([chartHeight, 0]);
 
-
         const colorScale = d3.scaleOrdinal()
           .domain(manufacturers)
           .range(d3.schemeCategory10);
-
 
         // Add axes
         let leftAxis = d3.axisLeft(yScale);
@@ -458,7 +430,6 @@
           .attr("text-anchor", "middle")
           .attr("font-size", "14px")
           .text("Total Vaccinations");
-
 
         // referenced http://www.d3noob.org/2013/01/how-to-rotate-text-labels-for-x-axis-of.html
         // for help rotating axis text
@@ -479,7 +450,8 @@
           .attr("font-size", "14px")
           .text("Months");
 
-
+        // referenced https://d3-graph-gallery.com/graph/barplot_grouped_basicWide.html to 
+        // figure out how to get the grouped data (.data() input)
         chartArea.append("g")
           .selectAll("g")
           // Enter in the data = loop through each month
@@ -491,14 +463,14 @@
           .data(function (d) {
             return manufacturers.map(function (key) { return { key: key, value: d[key] || 0 }; });
           })
-          .enter().append("rect")
-          .attr("x", function (d) { return xSubgroupScale(d.key); })
+          .enter().append("rect") // for each g tag, add bars for each manufacturer
+          .attr("x", function (d) { return manufacturerScale(d.key); })
           .attr("y", function (d) { return yScale(d.value) || 0; })
-          .attr("width", xSubgroupScale.bandwidth())
+          .attr("width", manufacturerScale.bandwidth())
           .attr("height", function (d) { return (chartHeight - yScale(d.value)) || 0; })
           .attr("fill", function (d) { return colorScale(d.key); });
 
-        //legend code
+        // legend code - we did this in P1
         let legend = d3.select("svg#legend3");
 
         manufacturers.forEach((manufacturer, i) => {
@@ -518,7 +490,7 @@
         });
       }
 
-      /************************* Line graph code **********************/
+      /************************* Line graph code **************************/
       const linesvg = d3.select("svg#lineplot");
       const linewidth = linesvg.attr("width");
       const lineheight = linesvg.attr("height");
@@ -530,39 +502,33 @@
       let linechartArea = linesvg.append("g").attr("id", "points")
         .attr("transform", `translate(${linemargin.left},${linemargin.top})`);
 
-
-      // Import some CSV data
+      // import data
       const linedata = await d3.csv("./data/us_state_vaccinations.csv", d3.autoType);
-
-
-      // const timeFormatter = d3.timeFormat('%Y-%m');
-
 
       linedata.forEach(d => {
         d['month'] = timeFormatter(d['date']);
       });
 
-
       const notWanted = ["United States", "Guam", 'Bureau of Prisons',
         'Dept of Defense', 'Federated States of Micronesia', 'Indian Health Svc',
         'Long Term Care', 'Marshall Islands', 'Northern Mariana Island',
         'Republic of Palau', 'Veterans Health', 'Puerto Rico'
-      ];
+      ]; // included in our current dataset but we dont want these locations to show in our graph
       let linestateDict = {};
       linedata.forEach(d => {
-        if (!notWanted.includes(d.location)) { // Exclude "United States"
-          // Ensure stateDict[d.location] is initialized
+        if (!notWanted.includes(d.location)) {
           if (!linestateDict[d.location]) {
             linestateDict[d.location] = [];
           }
-          if (d.total_distributed != null) { // Check for non-null values
+          // adding values into our dictionary
+          if (d.total_distributed != null) {
             linestateDict[d.location].push({ month: d.month, total_distributed: d.total_distributed });
           }
         }
       });
 
       function drawLine() {
-        // referenced https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object
+        // referenced https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object for help with flattening
         const flatlineData = Object.keys(linestateDict).map(state => ({
           state,
           values: linestateDict[state].filter(d => d.total_distributed != null)
@@ -576,7 +542,7 @@
           lineannotations.selectAll("*").remove();
           let arr = state.values;
 
-
+          // aggregating data for each month
           const monthData = {};
           arr.forEach(n => {
             if (!monthData[n.month]) {
@@ -585,8 +551,6 @@
             else
               monthData[n.month].total_distributed += n.total_distributed;
           });
-          // {"01-2020": {month: "01-2020", ppl: 10000},
-          //  "02-2020": {month: "02-2020", ppl: 10000}}
           state.values = Object.values(monthData);
         });
 
@@ -635,38 +599,36 @@
           .attr("font-size", "14px")
           .text("Month");
 
-        // // Create line generator
+        // Create line generator
         const lineGen = d3.line()
           .x(d => xlineScale(d.month))
           .y(d => ylineScale(d.total_distributed))
           //          .defined(d => !isNaN(d.distributed_per_hundred)) // Skip NaN values //chat
           .curve(d3.curveMonotoneX);
 
-        const stateSelector = d3.select("#stateSelector");
-        stateSelector.selectAll("option")
+        const stateLine = d3.select("#stateLine");
+        stateLine.selectAll("option")
           .data(["All States"].concat(Object.keys(linestateDict)))
           .enter()
-          .append("option")
+          .append("option") // referenced https://stackoverflow.com/questions/740195/adding-options-to-a-select-using-jquery to figure out what option argument does
           .attr("value", d => d)
           .text(d => d);
 
-
         // Function to update chart based on selected state
-        function updateChart(selectedState) {
+        function changeGraph(selectedState) {
+          // referenced https://stackoverflow.com/questions/22452112/nvd3-clear-svg-before-loading-new-chart
+          // to see how to remove the lines (modified)
           linechartArea.selectAll(".line").remove();
 
           const filteredData = selectedState === "All States"
             ? flatlineData
             : flatlineData.filter(d => d.state === selectedState);
 
-
           let tooltip = linechartArea.append("g")
-            .attr("class", "line-tooltip")
-            .attr("transform", `translate(${linechartWidth - 150}, 20)`) // Fixed to the top-right corner
+            .attr("class", "lineDrawing")
+            .attr("transform", `translate(${linechartWidth - 150}, 20)`)
             .style("visibility", "hidden");
 
-
-          // Add text for the state name
           let stateLabel = tooltip.append("text");
 
           filteredData.forEach(stateData => {
@@ -679,37 +641,30 @@
               .attr("fill", "none")
               .on("mouseover", function () {
                 d3.select(this)
-                  .attr("stroke-width", 4); // Bolden the line
-
-                // Update and show the tooltip
-                stateLabel.text(stateData.state) // Set the state name
-                  .style("font-size", "20px"); // Enlarge the font
+                  .attr("stroke-width", 4);
+                stateLabel.text(stateData.state)
+                  .style("font-size", "20px");
                 tooltip.style("visibility", "visible");
               })
               .on("mouseout", function () {
                 d3.select(this)
-                  .attr("stroke-width", 2); // Reset line width
-
-                // Hide the tooltip
+                  .attr("stroke-width", 2);
                 tooltip.style("visibility", "hidden");
               })
-              .append("title") // Tooltip for accessibility
+              .append("title")
               .text(stateData.state);
           });
         }
 
-
         // Initial render with all states
-        updateChart("All States");
-
+        changeGraph("All States");
 
         // Add event listener for dropdown menu
-        stateSelector.on("change", function () {
+        stateLine.on("change", function () {
           const selectedState = d3.select(this).property("value");
-          updateChart(selectedState);
+          changeGraph(selectedState);
         });
       }
-
 
       /****************** button functionality ***********************/
       function addYears(year) {
@@ -752,6 +707,7 @@
 
       }
 
+      //function to update year on the buttons on map and change the year
       function update(year) {
         addYears(year);
         currentYear = year;
@@ -762,7 +718,7 @@
         const colorScale = d3.scaleQuantile()
           .domain(Object.values(stateDict))
           .range(["#caf0f8", "#90e0ef", "#00b4d8", "#0077b6", "#03045e"]);
-
+        //Color Scale citation: https://venngage-wordpress.s3.amazonaws.com/uploads/2021/06/Shades-of-Blue-Color-Palette.png
         drawLegend("#colorLegend", colorScale);
 
         svg.selectAll(".state")
@@ -779,15 +735,12 @@
 
       update(currentYear);
       window.update = update;
-      updateFunction = update;
-
-
 
     }
 
     requestData();
 
-    //button selector code
+    //button selector code and making sure the two buttons are active when intial load as specified. 
 
     const navbarButtons = document.querySelectorAll(".navbar button");
     navbarButtons.forEach((button) => {
