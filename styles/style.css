@@ -1,8 +1,34 @@
+body {
+  margin: 0;
+}
+
+.top {
+  margin: 0;
+  background-color: #5293BB;
+  text-align: center;
+  padding: 0.5em;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 1000;
+}
+
+.content {
+  padding: 1em 2em 2em 2em;
+  margin-top: 8em;
+}
+
+
+.linegraph {
+  padding: 1em 2em 2em 2em;
+}
+
+
+
 .navbar {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #5293BB;
   padding: 10px;
 }
 
@@ -13,12 +39,6 @@
 .outline {
   fill: none;
   stroke: black;
-  stroke-width: 1px;
-}
-
-.graticule {
-  fill: none;
-  stroke: grey;
   stroke-width: 1px;
 }
 
