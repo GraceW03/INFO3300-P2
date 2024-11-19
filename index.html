@@ -26,6 +26,8 @@
     </div>
   </div>
 
+  <!-- First SVG section with interactive map  -->
+
   <div class="content">
 
     <h3>COVID-19 Vaccinations across the US from 2021-2023</h3>
@@ -36,8 +38,7 @@
       <button onclick="variableChange('total_boosters')">Boosters</button>
     </div>
 
-
-    <!-- First SVG section with interactive map + bar charts -->
+    <br>
     <svg id="choropleth" height="500" width="600"></svg>
     <svg id="tooltipmap" height="80" width="100" style="margin-left: 20px;"></svg>
 
@@ -75,6 +76,9 @@
 
 
   <script>
+
+
+    //button selector code
 
     const navbarButtons = document.querySelectorAll(".navbar button");
     navbarButtons.forEach((button) => {
@@ -437,6 +441,12 @@
             .attr("transform", `translate(${margin.left - 10}, ${margin.top})`)
             .call(leftAxis);
 
+          svg.append("text")
+            .attr("transform", `translate(${margin.left - 90}, ${chartHeight / 2}) rotate(-90)`)
+            .attr("text-anchor", "middle")
+            .attr("font-size", "14px")
+            .text("Total Vaccinations");
+
 
           // referenced http://www.d3noob.org/2013/01/how-to-rotate-text-labels-for-x-axis-of.html
           // for help rotating axis text
@@ -450,6 +460,12 @@
             .attr("dx", "-10")
             .attr("dy", "2")
             .attr("transform", "rotate(-65)");
+
+          svg.append("text")
+            .attr("transform", `translate(${chartWidth / 2 + margin.left}, ${chartHeight + margin.top + 70})`)
+            .attr("text-anchor", "middle")
+            .attr("font-size", "14px")
+            .text("Months");
 
 
           chartArea.append("g")
@@ -586,6 +602,12 @@
           .attr("transform", `translate(${margin.left - 10}, ${margin.top})`)
           .call(leftAxis);
 
+        svg.append("text")
+          .attr("transform", `translate(${margin.left - 90}, ${chartHeight / 2}) rotate(-90)`)
+          .attr("text-anchor", "middle")
+          .attr("font-size", "14px")
+          .text("People Fully Vaccinated");
+
 
         // referenced http://www.d3noob.org/2013/01/how-to-rotate-text-labels-for-x-axis-of.html
         // for help rotating axis text
@@ -599,6 +621,12 @@
           .attr("dx", "-10")
           .attr("dy", "2")
           .attr("transform", "rotate(-65)");
+
+        svg.append("text")
+          .attr("transform", `translate(${chartWidth / 2 + margin.left}, ${chartHeight + margin.top + 70})`)
+          .attr("text-anchor", "middle")
+          .attr("font-size", "14px")
+          .text("Months");
 
 
         // // Create line generator
