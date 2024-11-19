@@ -22,23 +22,22 @@
       <button onclick="update(2021)">2021</button>
       <button onclick="update(2022)">2022</button>
       <button onclick="update(2023)">2023</button>
-      <button class="active" onclick="update('total')">All Years</button>
+      <button onclick="update('total')">All Years</button>
     </div>
   </div>
-
-  <!-- First SVG section with interactive map  -->
 
   <div class="content">
 
     <h3>COVID-19 Vaccinations across the US from 2021-2023</h3>
 
     <div>
-      <button class="active" onclick="variableChange('total_vaccinations')">Total Vaccinations</button>
+      <button onclick="variableChange('total_vaccinations')">Total Vaccinations</button>
       <button onclick="variableChange('people_fully_vaccinated')">People Fully Vaccinated</button>
       <button onclick="variableChange('total_boosters')">Boosters</button>
     </div>
 
-    <br>
+
+    <!-- First SVG section with interactive map + bar charts -->
     <svg id="choropleth" height="500" width="600"></svg>
     <svg id="tooltipmap" height="80" width="100" style="margin-left: 20px;"></svg>
 
@@ -51,11 +50,9 @@
 
   <div class=linegraph>
 
-    <h3>Distribution of Vaccines, by State</h3>
+    <h3>New People Fully Vaccinated Over Time, by State</h3>
     <label for="stateSelector">Select State:</label>
     <select id="stateSelector"></select>
-
-    <br>
 
     <svg id="lineplot" height="500" width="800" style="margin-top:50px">
     </svg>
@@ -65,26 +62,16 @@
 
 
   <!-- manufacturer bar graph -->
+  <svg id="barchart" height="500" width="600"></svg>
 
-  <div class=bargraph>
-
-    <h3>Distribution by Manufacturer Over Time</h3>
-    <svg id="barchart" height="500" width="600"></svg>
-
-    <svg id="legend3" height="200" width="150"></svg>
-  </div>
+  <svg id="legend3" height="200" width="150"></svg>
 
 
   <script>
-    var updateFunction;
-    var variableChangeFunction;
 
 
     const requestData = async function () {
-      let currentYear = "total";
-      let currentVariable = 'total_vaccinations';
 
-      /*************************** Create the map **************************/
       const svg = d3.select("#choropleth");
       const width = svg.attr("width");
       const height = svg.attr("height");
@@ -92,12 +79,16 @@
       const mapWidth = width - margin.left - margin.right;
       const mapHeight = height - margin.top - margin.bottom;
 
+
+      /*************************** Create the map **************************/
       // referenced October 9 lecture
-      const us = await d3.json("./data/us-smaller.json");
+      const us = await d3.json("./data/us-smaller.json"); // what's up with the period??? ask TA
       var states = topojson.feature(us, us.objects.states);
       var statesMesh = topojson.mesh(us, us.objects.states);
       var projection = d3.geoAlbersUsa().fitSize([mapWidth, mapHeight], states);
       var path = d3.geoPath().projection(projection);
+      console.log(states);
+      console.log(statesMesh);
 
 
       const map = svg.append("g")
@@ -133,20 +124,44 @@
         codeDict[d.state_code] = d.state_name;
       });
 
-      // buttons for changing variables
+
+      let currentYear = "total";
+      let currentVariable = 'total_vaccinations';
       function variableChange(variable) {
         currentVariable = variable;
         update(currentYear);
       }
 
-      window.variableChange = variableChange;
-      variableChangeFunction = variableChange;
+
+      function addYears(year) {
+        stateDict = {};
+        vaccineData.forEach(d => {
+          const dataYear = new Date(d.date).getFullYear();
+          if (year === 'total' || dataYear === year) {
+            stateDict[d.location] = (stateDict[d.location] || 0) + d[currentVariable];
+          }
+        });
+      }
+
+      function update(year) {
+        addYears(year);
+        currentYear = year;
+        const colorScale = d3.scaleQuantile()
+          .domain(Object.values(stateDict))
+          .range(["#ddd", "#d1e8ed", "#adc2da", "#8879b3", "#762b80"]);
+
+
+        svg.selectAll(".state")
+          .style("fill", d => colorScale(stateDict[codeDict[d.id]]));
+      }
+
 
       //hover and add box for a more detailed view into the data
 
 
       var tooltipWidth = 120;
       var tooltipHeight = 40;
+      let tooltipSvg = d3.select("#tooltipmap").style("visibility", "hidden");;
 
 
       let momesh = map.append("path")
@@ -159,56 +174,49 @@
       let tooltip = map.append("g")
         .attr("class", "tooltip")
         .attr("visibility", "hidden");
-      tooltip.append("rect")
+      tooltipSvg.append("rect")
+        .attr("width", 100)
+        .attr("height", 50)
         .attr("fill", "black")
-        .attr("opacity", 0.9)
-        .attr("x", -tooltipWidth / 2.0)
-        .attr("y", 0)
-        .attr("width", tooltipWidth)
-        .attr("height", tooltipHeight)
-      let txt = tooltip.append("text")
-        .attr("fill", "white")
-        .attr("text-anchor", "middle")
-        .attr("alignment-baseline", "hanging")
         .attr("x", 0)
-        .attr("y", 2)
-        .attr("font-size", "10px");
-      let txt2 = tooltip.append("text")
-        .attr("fill", "white")
-        .attr("text-anchor", "middle")
-        .attr("alignment-baseline", "hanging")
-        .attr("x", 0)
-        .attr("y", 22)
-        .attr("font-size", "10px");
+        .attr("y", 0);
 
+      let txt = tooltipSvg.append("text")
+        .attr("x", 50)
+        .attr("y", 20)
+        .attr("fill", "white")
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "middle")
+        .attr("font-size", "12px");
+
+      let txt2 = tooltipSvg.append("text")
+        .attr("x", 50)
+        .attr("y", 35)
+        .attr("fill", "white")
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "middle")
+        .attr("font-size", "10px");
 
       function mouseEntersState() {
-        tooltip.style("visibility", "visible")
+        tooltipSvg.style("visibility", "visible");
 
         let state = d3.select(this);
         let stateID = state.datum().id;
         let stateName = codeDict[stateID];
         let totalVaccinations = stateDict[stateName];
 
-        txt.text(stateName);
+        txt.text(stateName || "Unknown State");
         txt2.text(totalVaccinations ? `Total: ${totalVaccinations}` : "Data unavailable");
-
-        let xPos = mapWidth - margin.right - 10;
-        let yPos = margin.top + 10;
-
-        tooltip.attr("transform", `translate(${xPos},${yPos})`);
 
         var mo = topojson.mesh(us, us.objects.states, function (a, b) { return a.id === stateID || b.id === stateID; });
         momesh.datum(mo).attr("d", path)
-
       }
 
+
       function mouseLeavesState() {
-        tooltip.style("visibility", "hidden");
-
-
+        tooltipSvg.style("visibility", "hidden");
         let state = d3.select(this);
-        momesh.attr("d", "");
+        momesh.datum(null).attr("d", "")
       }
 
 
@@ -235,24 +243,33 @@
       }
 
 
+
+
       // Click on a state/county to zoom in on it, and again to zoom out
       map.selectAll(".state").on("click", clicked);
 
+
       var stateClicked = false;
 
+
       function clicked(event, d) { // zoom out
+        console.log(d)
         if (stateClicked) {
           let translate = [margin.left, margin.right];
+
 
           let newTransform = d3.zoomIdentity
             .translate(translate[0], translate[1])
             .scale(1);
           svg.transition().duration(1000).call(zoom.transform, newTransform);
 
+
           stateClicked = false;
         }
 
+
         else { // zoom out
+          // geoPath generators have a few extra functions. .bounds returns a pixel rectangle bounding the shape you give it
           let bounds = path.bounds(d.geometry);
           let dx = bounds[1][0] - bounds[0][0];
           let dy = bounds[1][1] - bounds[0][1];
@@ -276,229 +293,235 @@
           stateClicked = true;
         }
       }
+      window.variableChange = variableChange;
+
+      update(currentYear);
+
+      window.update = update;
+    }
+    requestData();
 
 
-      /************************* Bar graph code *************************/
-      const barsvg = d3.select("svg#barchart");
-      const barwidth = barsvg.attr("width");
-      const barheight = barsvg.attr("height");
-      const barmargin = { top: 10, right: 10, bottom: 100, left: 100 };
-      const chartWidth = barwidth - barmargin.left - barmargin.right;
-      const chartHeight = barheight - barmargin.top - barmargin.bottom;
-
-      let annotations = barsvg.append("g").attr("id", "annotations");
-      let chartArea = barsvg.append("g").attr("id", "bars")
-        .attr("transform", `translate(${barmargin.left},${barmargin.top})`);
-
-      const data = await d3.csv("./data/us_vaccine_manufacturer_data.csv", d3.autoType);
+    /************************* Bar graph code *************************/
+    const bargraph = async function () {
+      const svg = d3.select("svg#barchart");
+      const width = svg.attr("width");
+      const height = svg.attr("height");
+      const margin = { top: 10, right: 10, bottom: 70, left: 100 };
+      const chartWidth = width - margin.left - margin.right;
+      const chartHeight = height - margin.top - margin.bottom;
 
 
-      const timeFormatter = d3.timeFormat('%Y-%m');
+      let annotations = svg.append("g").attr("id", "annotations");
+      let chartArea = svg.append("g").attr("id", "bars")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
 
 
-      data.forEach(d => {
-        d['month'] = timeFormatter(d['date']);
-      });
 
 
-      let monthDict = {}; // {month: {vaccine: total_vaccinations}}
-      data.forEach(d => {
-        if (!monthDict[d.month]) monthDict[d.month] = {};
-        if (!monthDict[d.month][d.vaccine]) monthDict[d.month][d.vaccine] = 0;
-        monthDict[d.month][d.vaccine] += d.total_vaccinations;
-      });
-
-      function drawBars() {
-
-        annotations.selectAll("*").remove();
-        chartArea.selectAll("*").remove();
-
-        let flatData = [];
-        for (let month in monthDict) {
-          let row = { month: month };
-          for (let vaccine in monthDict[month]) {
-            row[vaccine] = monthDict[month][vaccine];
-          }
-          flatData.push(row);
-        }
+      d3.csv("./data/us_vaccine_manufacturer_data.csv", d3.autoType)
+        .then((data) => {
 
 
-        const manufacturers = Array.from(new Set(data.map(d => d.vaccine)));
+          const timeFormatter = d3.timeFormat('%Y-%m');
 
 
-        flatData.forEach(row => {
-          manufacturers.forEach(manufacturer => {
-            if (!row[manufacturer]) {
-              row[manufacturer] = 0;
-            }
+          data.forEach(d => {
+            d['month'] = timeFormatter(d['date']);
           });
+
+
+          let monthDict = {}; // {month: {vaccine: total_vaccinations}}
+          data.forEach(d => {
+            if (!monthDict[d.month]) monthDict[d.month] = {};
+            if (!monthDict[d.month][d.vaccine]) monthDict[d.month][d.vaccine] = 0;
+            monthDict[d.month][d.vaccine] += d.total_vaccinations;
+          });
+
+
+          let flatData = [];
+          for (let month in monthDict) {
+            let row = { month: month };
+            for (let vaccine in monthDict[month]) {
+              row[vaccine] = monthDict[month][vaccine];
+            }
+            flatData.push(row);
+          }
+
+
+          const manufacturers = Array.from(new Set(data.map(d => d.vaccine)));
+
+
+          flatData.forEach(row => {
+            manufacturers.forEach(manufacturer => {
+              if (!row[manufacturer]) {
+                row[manufacturer] = 0;
+              }
+            });
+          });
+
+
+          console.log("data for bar graph");
+          console.log(flatData);
+
+
+          const allMonths = flatData.map(d => d.month).sort();
+
+
+          const xScale = d3.scaleBand()
+            .domain(allMonths)
+            .range([0, chartWidth])
+            .padding(0.1);
+
+
+          const xSubgroupScale = d3.scaleBand()
+            .domain(manufacturers)
+            .range([0, xScale.bandwidth()])
+            .padding(0.05);
+
+
+          // referenced https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap
+          const manufacturerArray = flatData.flatMap(month => [
+            month['Moderna'],
+            month['Pfizer/BioNTech'],
+            month['Johnson&Johnson']
+          ]);
+
+
+          const yExtent = d3.extent(manufacturerArray);
+
+
+          const yScale = d3.scaleLinear()
+            .domain([0, yExtent[1]])
+            .range([chartHeight, 0]);
+
+
+          const colorScale = d3.scaleOrdinal()
+            .domain(manufacturers)
+            .range(d3.schemeCategory10);
+
+
+          // Add axes
+          let leftAxis = d3.axisLeft(yScale);
+          annotations.append("g")
+            .attr("class", "y axis")
+            .attr("transform", `translate(${margin.left - 10}, ${margin.top})`)
+            .call(leftAxis);
+
+
+          // referenced http://www.d3noob.org/2013/01/how-to-rotate-text-labels-for-x-axis-of.html
+          // for help rotating axis text
+          let bottomAxis = d3.axisBottom(xScale);
+          annotations.append("g")
+            .attr("class", "x axis")
+            .attr("transform", `translate(${margin.left}, ${chartHeight + margin.top + 10})`)
+            .call(bottomAxis)
+            .selectAll("text")
+            .style("text-anchor", "end")
+            .attr("dx", "-10")
+            .attr("dy", "2")
+            .attr("transform", "rotate(-65)");
+
+
+          chartArea.append("g")
+            .selectAll("g")
+            // Enter in the data = loop through each month
+            .data(flatData)
+            .enter()
+            .append("g")
+            .attr("transform", function (d) { return "translate(" + xScale(d.month) + ",0)"; })
+            .selectAll("rect")
+            .data(function (d) {
+              return manufacturers.map(function (key) { return { key: key, value: d[key] || 0 }; });
+            })
+            .enter().append("rect")
+            .attr("x", function (d) { return xSubgroupScale(d.key); })
+            .attr("y", function (d) { return yScale(d.value); })
+            .attr("width", xSubgroupScale.bandwidth())
+            .attr("height", function (d) { return chartHeight - yScale(d.value); })
+            .attr("fill", function (d) { return colorScale(d.key); });
+
+          //legend code
+          let legend = d3.select("svg#legend3");
+
+          manufacturers.forEach((manufacturer, i) => {
+            legend.append("circle")
+              .attr("cx", 10)
+              .attr("cy", i * 25)
+              .attr("r", 7)
+              .style("fill", colorScale(manufacturer));
+
+            legend.append("text")
+              .attr("x", 30)
+              .attr("y", i * 25)
+              .text(manufacturer)
+              .attr("text-anchor", "left")
+              .style("alignment-baseline", "middle");
+          });
+
+
+        });
+
+    }
+
+    bargraph();
+
+
+    /************************* Line graph code **********************/
+    const svg = d3.select("svg#lineplot");
+    const width = svg.attr("width");
+    const height = svg.attr("height");
+    const margin = { top: 10, right: 10, bottom: 100, left: 100 };
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+
+
+    let annotations = svg.append("g").attr("id", "annotations");
+    let chartArea = svg.append("g").attr("id", "points")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+
+    // Import some CSV data
+    d3.csv("./data/us_state_vaccinations.csv", d3.autoType)
+      .then((data) => {
+
+
+        const timeFormatter = d3.timeFormat('%Y-%m');
+
+
+        data.forEach(d => {
+          d['month'] = timeFormatter(d['date']);
         });
 
 
-        const allMonths = flatData.map(d => d.month).sort();
-
-
-        const xScale = d3.scaleBand()
-          .domain(allMonths)
-          .range([0, chartWidth])
-          .padding(0.1);
-
-
-        const xSubgroupScale = d3.scaleBand()
-          .domain(manufacturers)
-          .range([0, xScale.bandwidth()])
-          .padding(0.05);
-
-        // referenced https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap
-        const manufacturerArray = flatData.flatMap(month => [
-          month['Moderna'],
-          month['Pfizer/BioNTech'],
-          month['Johnson&Johnson'],
-          month['Novavax']
-        ]);
-
-
-        const yExtent = d3.extent(manufacturerArray);
-
-
-        const yScale = d3.scaleLinear()
-          .domain([0, yExtent[1]])
-          .range([chartHeight, 0]);
-
-
-        const colorScale = d3.scaleOrdinal()
-          .domain(manufacturers)
-          .range(d3.schemeCategory10);
-
-
-        // Add axes
-        let leftAxis = d3.axisLeft(yScale);
-        annotations.append("g")
-          .attr("class", "y axis")
-          .attr("transform", `translate(${barmargin.left - 10}, ${barmargin.top})`)
-          .call(leftAxis);
-
-        barsvg.append("text")
-          .attr("transform", `translate(${barmargin.left - 90}, ${chartHeight / 2}) rotate(-90)`)
-          .attr("text-anchor", "middle")
-          .attr("font-size", "14px")
-          .text("Total Vaccinations");
-
-
-        // referenced http://www.d3noob.org/2013/01/how-to-rotate-text-labels-for-x-axis-of.html
-        // for help rotating axis text
-        let bottomAxis = d3.axisBottom(xScale);
-        annotations.append("g")
-          .attr("class", "x axis")
-          .attr("transform", `translate(${barmargin.left}, ${chartHeight + barmargin.top + 10})`)
-          .call(bottomAxis)
-          .selectAll("text")
-          .style("text-anchor", "end")
-          .attr("dx", "-10")
-          .attr("dy", "2")
-          .attr("transform", "rotate(-65)");
-
-        barsvg.append("text")
-          .attr("transform", `translate(${chartWidth / 2 + barmargin.left}, ${chartHeight + barmargin.top + 75})`)
-          .attr("text-anchor", "middle")
-          .attr("font-size", "14px")
-          .text("Months");
-
-
-        chartArea.append("g")
-          .selectAll("g")
-          // Enter in the data = loop through each month
-          .data(flatData)
-          .enter()
-          .append("g")
-          .attr("transform", function (d) { return "translate(" + xScale(d.month) + ",0)"; })
-          .selectAll("rect")
-          .data(function (d) {
-            return manufacturers.map(function (key) { return { key: key, value: d[key] || 0 }; });
-          })
-          .enter().append("rect")
-          .attr("x", function (d) { return xSubgroupScale(d.key); })
-          .attr("y", function (d) { return yScale(d.value) || 0; })
-          .attr("width", xSubgroupScale.bandwidth())
-          .attr("height", function (d) { return (chartHeight - yScale(d.value)) || 0; })
-          .attr("fill", function (d) { return colorScale(d.key); });
-
-        //legend code
-        let legend = d3.select("svg#legend3");
-
-        manufacturers.forEach((manufacturer, i) => {
-          console.log(i);
-          legend.append("circle")
-            .attr("cx", 10)
-            .attr("cy", i * 25)
-            .attr("r", 7)
-            .style("fill", colorScale(manufacturer));
-
-          legend.append("text")
-            .attr("x", 30)
-            .attr("y", i * 25)
-            .text(manufacturer)
-            .attr("text-anchor", "left")
-            .style("alignment-baseline", "middle");
+        const notWanted = ["United States", "Guam", 'Bureau of Prisons',
+          'Dept of Defense', 'Federated States of Micronesia', 'Indian Health Svc',
+          'Long Term Care', 'Marshall Islands', 'Northern Mariana Island',
+          'Republic of Palau', 'Veterans Health', 'Puerto Rico'
+        ];
+        let stateDict = {};
+        data.forEach(d => {
+          if (!notWanted.includes(d['location'])) {
+            if (!stateDict[d['location']]) {
+              stateDict[d['location']] = [];
+            }
+            if (d.total_distributed != null) {
+              stateDict[d['location']].push({ month: d['month'], total_distributed: d['total_distributed'] });
+            }
+          }
         });
-      }
-
-      /************************* Line graph code **********************/
-      const linesvg = d3.select("svg#lineplot");
-      const linewidth = linesvg.attr("width");
-      const lineheight = linesvg.attr("height");
-      const linemargin = { top: 10, right: 10, bottom: 100, left: 100 };
-      const linechartWidth = linewidth - linemargin.left - linemargin.right;
-      const linechartHeight = lineheight - linemargin.top - linemargin.bottom;
-
-      let lineannotations = linesvg.append("g").attr("id", "annotations");
-      let linechartArea = linesvg.append("g").attr("id", "points")
-        .attr("transform", `translate(${linemargin.left},${linemargin.top})`);
 
 
-      // Import some CSV data
-      const linedata = await d3.csv("./data/us_state_vaccinations.csv", d3.autoType);
-
-
-      // const timeFormatter = d3.timeFormat('%Y-%m');
-
-
-      linedata.forEach(d => {
-        d['month'] = timeFormatter(d['date']);
-      });
-
-
-      const notWanted = ["United States", "Guam", 'Bureau of Prisons',
-        'Dept of Defense', 'Federated States of Micronesia', 'Indian Health Svc',
-        'Long Term Care', 'Marshall Islands', 'Northern Mariana Island',
-        'Republic of Palau', 'Veterans Health', 'Puerto Rico'
-      ];
-      let linestateDict = {};
-      linedata.forEach(d => {
-        if (!notWanted.includes(d.location)) { // Exclude "United States"
-          // Ensure stateDict[d.location] is initialized
-          if (!linestateDict[d.location]) {
-            linestateDict[d.location] = [];
-          }
-          if (d.total_distributed != null) { // Check for non-null values
-            linestateDict[d.location].push({ month: d.month, total_distributed: d.total_distributed });
-          }
-        }
-      });
-
-      function drawLine() {
         // referenced https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object
-        const flatlineData = Object.keys(linestateDict).map(state => ({
+        const flatData = Object.keys(stateDict).map(state => ({
           state,
-          values: linestateDict[state].filter(d => d.total_distributed != null)
+          values: stateDict[state].filter(d => d.total_distributed != null)
         }));
 
 
         // aggregate flat data together by month
-        flatlineData.forEach(state => {
-          lineannotations.selectAll("*").remove();
+        flatData.forEach(state => {
           let arr = state.values;
-
 
           const monthData = {};
           arr.forEach(n => {
@@ -515,59 +538,50 @@
 
 
         // referenced https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap
-        const vaccinations = flatlineData.flatMap(stateData =>
+        const vaccinations = flatData.flatMap(stateData =>
           stateData.values.map(month => month.total_distributed)
         );
 
-        const alllineMonths = Array.from(new Set(flatlineData.flatMap(state => state.values.map(d => d.month)))).sort();
+        const allMonths = Array.from(new Set(data.map(d => d.month))).sort(); // this is not working apparently
+        const yExtent = d3.extent(vaccinations);
+        console.log(yExtent);
+        // const yExtent = d3.extent(data, d => d.people_fully_vaccinated);
+        const xScale = d3.scalePoint().domain(allMonths).range([0, chartWidth]);
+        const yScale = d3.scaleLinear().domain(yExtent).range([chartHeight, 0]);
 
-        alllineMonths.filter(d => (currentYear = 'total' || new Date(d.month).getFullYear() == currentYear));
-        const ylineExtent = d3.extent(vaccinations);
-        const xlineScale = d3.scalePoint().domain(alllineMonths).range([0, linechartWidth]);
-        const ylineScale = d3.scaleLinear().domain(ylineExtent).range([linechartHeight, 0]);
 
         // Add axes
-        let leftlineAxis = d3.axisLeft(ylineScale);
-        lineannotations.append("g")
+        let leftAxis = d3.axisLeft(yScale);
+        annotations.append("g")
           .attr("class", "y axis")
-          .attr("transform", `translate(${linemargin.left - 10}, ${linemargin.top})`)
-          .call(leftlineAxis);
+          .attr("transform", `translate(${margin.left - 10}, ${margin.top})`)
+          .call(leftAxis);
 
-        linesvg.append("text")
-          .attr("transform", `translate(${linemargin.left - 90}, ${linechartHeight / 2}) rotate(-90)`)
-          .attr("text-anchor", "middle")
-          .attr("font-size", "14px")
-          .text("Number of Vaccines Distributed");
 
         // referenced http://www.d3noob.org/2013/01/how-to-rotate-text-labels-for-x-axis-of.html
         // for help rotating axis text
-        let bottomlineAxis = d3.axisBottom(xlineScale);
-        lineannotations.append("g")
+        let bottomAxis = d3.axisBottom(xScale);
+        annotations.append("g")
           .attr("class", "x axis")
-          .attr("transform", `translate(${linemargin.left}, ${linechartHeight + linemargin.top + 10})`)
-          .call(bottomlineAxis)
+          .attr("transform", `translate(${margin.left}, ${chartHeight + margin.top + 10})`)
+          .call(bottomAxis)
           .selectAll("text")
           .style("text-anchor", "end")
           .attr("dx", "-10")
           .attr("dy", "2")
           .attr("transform", "rotate(-65)");
 
-        linesvg.append("text")
-          .attr("transform", `translate(${linechartWidth / 2 + linemargin.left}, ${linechartHeight + linemargin.top + 75})`)
-          .attr("text-anchor", "middle")
-          .attr("font-size", "14px")
-          .text("Month");
 
         // // Create line generator
         const lineGen = d3.line()
-          .x(d => xlineScale(d.month))
-          .y(d => ylineScale(d.total_distributed))
+          .x(d => xScale(d.month))
+          .y(d => yScale(d.total_distributed))
           //          .defined(d => !isNaN(d.distributed_per_hundred)) // Skip NaN values //chat
           .curve(d3.curveMonotoneX);
 
         const stateSelector = d3.select("#stateSelector");
         stateSelector.selectAll("option")
-          .data(["All States"].concat(Object.keys(linestateDict)))
+          .data(["All States"].concat(Object.keys(stateDict)))
           .enter()
           .append("option")
           .attr("value", d => d)
@@ -576,16 +590,16 @@
 
         // Function to update chart based on selected state
         function updateChart(selectedState) {
-          linechartArea.selectAll(".line").remove();
+          chartArea.selectAll(".line").remove();
 
           const filteredData = selectedState === "All States"
-            ? flatlineData
-            : flatlineData.filter(d => d.state === selectedState);
+            ? flatData
+            : flatData.filter(d => d.state === selectedState);
 
 
-          let tooltip = linechartArea.append("g")
+          let tooltip = chartArea.append("g")
             .attr("class", "line-tooltip")
-            .attr("transform", `translate(${linechartWidth - 150}, 20)`) // Fixed to the top-right corner
+            .attr("transform", `translate(${chartWidth - 150}, 20)`) // Fixed to the top-right corner
             .style("visibility", "hidden");
 
 
@@ -593,11 +607,11 @@
           let stateLabel = tooltip.append("text");
 
           filteredData.forEach(stateData => {
-            linechartArea.append("path")
+            chartArea.append("path")
               .datum(stateData.values)
               .attr("class", "line")
               .attr("d", lineGen)
-              .attr("stroke", d3.schemeCategory10[Object.keys(linestateDict).indexOf(stateData.state) % 10])
+              .attr("stroke", d3.schemeCategory10[Object.keys(stateDict).indexOf(stateData.state) % 10])
               .attr("stroke-width", 2)
               .attr("fill", "none")
               .on("mouseover", function () {
@@ -619,6 +633,7 @@
               .append("title") // Tooltip for accessibility
               .text(stateData.state);
           });
+
         }
 
 
@@ -631,99 +646,7 @@
           const selectedState = d3.select(this).property("value");
           updateChart(selectedState);
         });
-      }
-
-
-      /****************** button functionality ***********************/
-      function addYears(year) {
-        // update map
-        stateDict = {};
-        vaccineData.forEach(d => {
-          const dataYear = new Date(d.date).getFullYear();
-          if (year === 'total' || dataYear === year) {
-            stateDict[d.location] = (stateDict[d.location] || 0) + d[currentVariable];
-          }
-        });
-
-        // update line graph
-        linestateDict = {};
-        linedata.forEach(d => {
-          if (!notWanted.includes(d.location)) { // Exclude "United States"
-            // Ensure stateDict[d.location] is initialized
-            if (!linestateDict[d.location]) {
-              linestateDict[d.location] = [];
-            }
-            if (d.total_distributed != null) { // Check for non-null values
-              const dataYear = new Date(d.month).getFullYear();
-              if (year === 'total' || dataYear === year)
-                linestateDict[d.location].push({ month: d.month, total_distributed: d.total_distributed });
-            }
-          }
-        });
-
-
-        // update bar graph
-        monthDict = {}; // {month: {vaccine: total_vaccinations}}
-        data.forEach(d => {
-          const dataYear = new Date(d.date).getFullYear();
-          if (year === 'total' || dataYear === year) {
-            if (!monthDict[d.month]) monthDict[d.month] = {};
-            if (!monthDict[d.month][d.vaccine]) monthDict[d.month][d.vaccine] = 0;
-            monthDict[d.month][d.vaccine] += d.total_vaccinations;
-          }
-        });
-
-      }
-
-      function update(year) {
-        addYears(year);
-        currentYear = year;
-
-        // update map
-        const colorScale = d3.scaleQuantile()
-          .domain(Object.values(stateDict))
-          .range(["#caf0f8", "#90e0ef", "#00b4d8", "#0077b6", "#03045e"]);
-
-        svg.selectAll(".state")
-          .style("fill", d => colorScale(stateDict[codeDict[d.id]]));
-
-        // update line graph
-        drawLine();
-
-        // update bar graph
-        drawBars();
-      }
-
-      update(currentYear);
-      window.update = update;
-      updateFunction = update;
-
-
-
-    }
-
-    requestData();
-
-    //button selector code
-
-    const navbarButtons = document.querySelectorAll(".navbar button");
-    navbarButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        navbarButtons.forEach((btn) => btn.classList.remove("active"));
-        button.classList.add("active");
       });
-    });
-
-    const metricButtons = document.querySelectorAll(".content button");
-    metricButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        metricButtons.forEach((btn) => btn.classList.remove("active"));
-        button.classList.add("active");
-      });
-    });
-
-    console.log(updateFunction);
-
   </script>
 </body>
 
