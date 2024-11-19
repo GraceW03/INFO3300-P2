@@ -53,6 +53,8 @@
   <!-- manufacturer bar graph -->
   <svg id="barchart" height="500" width="600"></svg>
 
+  <svg id="legend3" height="200" width="150"></svg>
+
 
   <script>
 
@@ -443,11 +445,29 @@
             .attr("height", function (d) { return chartHeight - yScale(d.value); })
             .attr("fill", function (d) { return colorScale(d.key); });
 
+          //legend code
+          let legend = d3.select("svg#legend3");
+
+          manufacturers.forEach((manufacturer, i) => {
+            legend.append("circle")
+              .attr("cx", 10)
+              .attr("cy", i * 25)
+              .attr("r", 7)
+              .style("fill", colorScale(manufacturer));
+
+            legend.append("text")
+              .attr("x", 30)
+              .attr("y", i * 25)
+              .text(manufacturer)
+              .attr("text-anchor", "left")
+              .style("alignment-baseline", "middle");
+          });
+
 
         });
 
-
     }
+
     bargraph();
 
 
