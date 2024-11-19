@@ -656,13 +656,13 @@
           });
         }
 
-        // Initial render with all states
         changeGraph("All States");
 
-        // Add event listener for dropdown menu
+        // referenced https://stackoverflow.com/questions/24193593/d3-how-to-change-dataset-based-on-drop-down-box-selection 
+        // to figure out how to get the drop down value to change the graph
         stateLine.on("change", function () {
-          const selectedState = d3.select(this).property("value");
-          changeGraph(selectedState);
+          const s = d3.select(this).property("value");
+          changeGraph(s);
         });
       }
 
