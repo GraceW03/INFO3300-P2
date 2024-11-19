@@ -199,12 +199,11 @@
 
 
 
-        let bounds = path.bounds(state.datum());
-        let xPos = (bounds[0][0] + bounds[1][0]) / 2.0;
-        let yPos = bounds[1][1] - 15;
-
+        let xPos = mapWidth - margin.right - 10;
+        let yPos = margin.top + 10;
 
         tooltip.attr("transform", `translate(${xPos},${yPos})`);
+
 
 
         var mo = topojson.mesh(us, us.objects.states, function (a, b) { return a.id === stateID || b.id === stateID; });
@@ -479,23 +478,19 @@
         });
 
 
-        // console.log(data);
-
-
-        const excludedLocations = ["United States", "Guam", 'Bureau of Prisons',
+        const notWanted = ["United States", "Guam", 'Bureau of Prisons',
           'Dept of Defense', 'Federated States of Micronesia', 'Indian Health Svc',
           'Long Term Care', 'Marshall Islands', 'Northern Mariana Island',
-          'Republic of Palau', 'Veterans Health'
+          'Republic of Palau', 'Veterans Health', 'Puerto Rico'
         ];
         let stateDict = {};
         data.forEach(d => {
-          if (!excludedLocations.includes(d.location)) { // Exclude "United States"
-            // Ensure stateDict[d.location] is initialized
-            if (!stateDict[d.location]) {
-              stateDict[d.location] = [];
+          if (!notWanted.includes(d['location'])) {
+            if (!stateDict[d['location']]) {
+              stateDict[d['location']] = [];
             }
-            if (d.people_fully_vaccinated != null) { // Check for non-null values
-              stateDict[d.location].push({ month: d.month, people_fully_vaccinated: d.people_fully_vaccinated });
+            if (d.people_fully_vaccinated != null) {
+              stateDict[d['location']].push({ month: d['month'], people_fully_vaccinated: d['people_fully_vaccinated'] });
             }
           }
         });
@@ -511,7 +506,6 @@
         // aggregate flat data together by month
         flatData.forEach(state => {
           let arr = state.values;
-
 
           const monthData = {};
           arr.forEach(n => {
@@ -570,15 +564,9 @@
           //          .defined(d => !isNaN(d.distributed_per_hundred)) // Skip NaN values //chat
           .curve(d3.curveMonotoneX);
 
-
-        const filteredStates = Object.keys(stateDict).filter(state => state !== "United States");
-
-
-
-
         const stateSelector = d3.select("#stateSelector");
         stateSelector.selectAll("option")
-          .data(["All States"].concat(filteredStates))
+          .data(["All States"].concat(Object.keys(stateDict)))
           .enter()
           .append("option")
           .attr("value", d => d)
@@ -589,11 +577,19 @@
         function updateChart(selectedState) {
           chartArea.selectAll(".line").remove();
 
-
           const filteredData = selectedState === "All States"
             ? flatData
             : flatData.filter(d => d.state === selectedState);
 
+
+          let tooltip = chartArea.append("g")
+            .attr("class", "line-tooltip")
+            .attr("transform", `translate(${chartWidth - 150}, 20)`) // Fixed to the top-right corner
+            .style("visibility", "hidden");
+
+
+          // Add text for the state name
+          let stateLabel = tooltip.append("text");
 
           filteredData.forEach(stateData => {
             chartArea.append("path")
@@ -603,21 +599,26 @@
               .attr("stroke", d3.schemeCategory10[Object.keys(stateDict).indexOf(stateData.state) % 10])
               .attr("stroke-width", 2)
               .attr("fill", "none")
-              .on("mouseover", function (event, d) {
+              .on("mouseover", function () {
                 d3.select(this)
                   .attr("stroke-width", 4); // Bolden the line
-                stateLabel
-                  .text(stateData.state) // Display the state name
-                  .style("visibility", "visible");
+
+                // Update and show the tooltip
+                stateLabel.text(stateData.state) // Set the state name
+                  .style("font-size", "20px"); // Enlarge the font
+                tooltip.style("visibility", "visible");
               })
               .on("mouseout", function () {
                 d3.select(this)
-                  .attr("stroke-width", 2); // Reset the line width
-                stateLabel.style("visibility", "hidden"); // Hide the label
+                  .attr("stroke-width", 2); // Reset line width
+
+                // Hide the tooltip
+                tooltip.style("visibility", "hidden");
               })
-              .append("title") // Tooltip for state name
+              .append("title") // Tooltip for accessibility
               .text(stateData.state);
           });
+
         }
 
 
