@@ -143,10 +143,9 @@
       variableChangeFunction = variableChange;
 
       //hover and add box for a more detailed view into the data
-
-
       var tooltipWidth = 120;
       var tooltipHeight = 40;
+      let tooltipSvg = d3.select("#tooltipmap").style("visibility", "hidden");;
 
 
       let momesh = map.append("path")
@@ -159,56 +158,49 @@
       let tooltip = map.append("g")
         .attr("class", "tooltip")
         .attr("visibility", "hidden");
-      tooltip.append("rect")
+      tooltipSvg.append("rect")
+        .attr("width", 100)
+        .attr("height", 50)
         .attr("fill", "black")
-        .attr("opacity", 0.9)
-        .attr("x", -tooltipWidth / 2.0)
-        .attr("y", 0)
-        .attr("width", tooltipWidth)
-        .attr("height", tooltipHeight)
-      let txt = tooltip.append("text")
-        .attr("fill", "white")
-        .attr("text-anchor", "middle")
-        .attr("alignment-baseline", "hanging")
         .attr("x", 0)
-        .attr("y", 2)
-        .attr("font-size", "10px");
-      let txt2 = tooltip.append("text")
-        .attr("fill", "white")
-        .attr("text-anchor", "middle")
-        .attr("alignment-baseline", "hanging")
-        .attr("x", 0)
-        .attr("y", 22)
-        .attr("font-size", "10px");
+        .attr("y", 0);
 
+      let txt = tooltipSvg.append("text")
+        .attr("x", 50)
+        .attr("y", 20)
+        .attr("fill", "white")
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "middle")
+        .attr("font-size", "12px");
+
+      let txt2 = tooltipSvg.append("text")
+        .attr("x", 50)
+        .attr("y", 35)
+        .attr("fill", "white")
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "middle")
+        .attr("font-size", "10px");
 
       function mouseEntersState() {
-        tooltip.style("visibility", "visible")
+        tooltipSvg.style("visibility", "visible");
 
         let state = d3.select(this);
         let stateID = state.datum().id;
         let stateName = codeDict[stateID];
         let totalVaccinations = stateDict[stateName];
 
-        txt.text(stateName);
+        txt.text(stateName || "Unknown State");
         txt2.text(totalVaccinations ? `Total: ${totalVaccinations}` : "Data unavailable");
-
-        let xPos = mapWidth - margin.right - 10;
-        let yPos = margin.top + 10;
-
-        tooltip.attr("transform", `translate(${xPos},${yPos})`);
 
         var mo = topojson.mesh(us, us.objects.states, function (a, b) { return a.id === stateID || b.id === stateID; });
         momesh.datum(mo).attr("d", path)
-
       }
 
+
       function mouseLeavesState() {
-        tooltip.style("visibility", "hidden");
-
-
+        tooltipSvg.style("visibility", "hidden");
         let state = d3.select(this);
-        momesh.attr("d", "");
+        momesh.datum(null).attr("d", "")
       }
 
 
