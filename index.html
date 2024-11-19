@@ -22,7 +22,7 @@
       <button onclick="update(2021)">2021</button>
       <button onclick="update(2022)">2022</button>
       <button onclick="update(2023)">2023</button>
-      <button onclick="update('total')">All Years</button>
+      <button class="active" onclick="update('total')">All Years</button>
     </div>
   </div>
 
@@ -31,7 +31,7 @@
     <h3>COVID-19 Vaccinations across the US from 2021-2023</h3>
 
     <div>
-      <button onclick="variableChange('total_vaccinations')">Total Vaccinations</button>
+      <button class="active" onclick="variableChange('total_vaccinations')">Total Vaccinations</button>
       <button onclick="variableChange('people_fully_vaccinated')">People Fully Vaccinated</button>
       <button onclick="variableChange('total_boosters')">Boosters</button>
     </div>
@@ -54,6 +54,8 @@
     <label for="stateSelector">Select State:</label>
     <select id="stateSelector"></select>
 
+    <br>
+
     <svg id="lineplot" height="500" width="800" style="margin-top:50px">
     </svg>
   </div>
@@ -62,12 +64,38 @@
 
 
   <!-- manufacturer bar graph -->
-  <svg id="barchart" height="500" width="600"></svg>
 
-  <svg id="legend3" height="200" width="150"></svg>
+  <div class=bargraph>
+
+    <h3>Manufacturer Total Vaccinations Over Time</h3>
+    <svg id="barchart" height="500" width="600"></svg>
+
+    <svg id="legend3" height="200" width="150"></svg>
+  </div>
 
 
   <script>
+
+    const navbarButtons = document.querySelectorAll(".navbar button");
+    navbarButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        navbarButtons.forEach((btn) => btn.classList.remove("active"));
+        button.classList.add("active");
+      });
+    });
+
+    const metricButtons = document.querySelectorAll(".content button");
+    metricButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        metricButtons.forEach((btn) => btn.classList.remove("active"));
+        button.classList.add("active");
+      });
+    });
+
+    window.onload = () => {
+      update('total');
+      variableChange('total_vaccinations');
+    };
 
 
     const requestData = async function () {
@@ -146,9 +174,10 @@
       function update(year) {
         addYears(year);
         currentYear = year;
+
         const colorScale = d3.scaleQuantile()
           .domain(Object.values(stateDict))
-          .range(["#ddd", "#d1e8ed", "#adc2da", "#8879b3", "#762b80"]);
+          .range(["#caf0f8", "#90e0ef", "#00b4d8", "#0077b6", "#03045e"]);
 
 
         svg.selectAll(".state")
