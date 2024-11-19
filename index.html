@@ -34,6 +34,8 @@
 
   <!-- First SVG section with interactive map + bar charts -->
   <svg id="choropleth" height="500" width="600"></svg>
+  <svg id="tooltipmap" height="80" width="100" style="margin-left: 20px;"></svg>
+
 
 
   <br>
@@ -150,6 +152,7 @@
 
       var tooltipWidth = 120;
       var tooltipHeight = 40;
+      let tooltipSvg = d3.select("#tooltipmap").style("visibility", "hidden");;
 
 
       let momesh = map.append("path")
@@ -162,65 +165,49 @@
       let tooltip = map.append("g")
         .attr("class", "tooltip")
         .attr("visibility", "hidden");
-      tooltip.append("rect")
+      tooltipSvg.append("rect")
+        .attr("width", 100)
+        .attr("height", 50)
         .attr("fill", "black")
-        .attr("opacity", 0.9)
-        .attr("x", -tooltipWidth / 2.0)
-        .attr("y", 0)
-        .attr("width", tooltipWidth)
-        .attr("height", tooltipHeight)
-      let txt = tooltip.append("text")
-        .attr("fill", "white")
-        .attr("text-anchor", "middle")
-        .attr("alignment-baseline", "hanging")
         .attr("x", 0)
-        .attr("y", 2)
-        .attr("font-size", "10px");
-      let txt2 = tooltip.append("text")
-        .attr("fill", "white")
-        .attr("text-anchor", "middle")
-        .attr("alignment-baseline", "hanging")
-        .attr("x", 0)
-        .attr("y", 22)
-        .attr("font-size", "10px");
+        .attr("y", 0);
 
+      let txt = tooltipSvg.append("text")
+        .attr("x", 50)
+        .attr("y", 20)
+        .attr("fill", "white")
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "middle")
+        .attr("font-size", "12px");
+
+      let txt2 = tooltipSvg.append("text")
+        .attr("x", 50)
+        .attr("y", 35)
+        .attr("fill", "white")
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "middle")
+        .attr("font-size", "10px");
 
       function mouseEntersState() {
-        tooltip.style("visibility", "visible")
-
+        tooltipSvg.style("visibility", "visible");
 
         let state = d3.select(this);
         let stateID = state.datum().id;
         let stateName = codeDict[stateID];
         let totalVaccinations = stateDict[stateName];
 
-
-        txt.text(stateName);
+        txt.text(stateName || "Unknown State");
         txt2.text(totalVaccinations ? `Total: ${totalVaccinations}` : "Data unavailable");
-
-
-
-
-        let xPos = mapWidth - margin.right - 10;
-        let yPos = margin.top + 10;
-
-        tooltip.attr("transform", `translate(${xPos},${yPos})`);
-
-
 
         var mo = topojson.mesh(us, us.objects.states, function (a, b) { return a.id === stateID || b.id === stateID; });
         momesh.datum(mo).attr("d", path)
-
-
       }
 
 
       function mouseLeavesState() {
-        tooltip.style("visibility", "hidden");
-
-
+        tooltipSvg.style("visibility", "hidden");
         let state = d3.select(this);
-        momesh.attr("d", "");
+        momesh.datum(null).attr("d", "")
       }
 
 
@@ -509,8 +496,8 @@
             if (!stateDict[d['location']]) {
               stateDict[d['location']] = [];
             }
-            if (d.people_fully_vaccinated != null) {
-              stateDict[d['location']].push({ month: d['month'], people_fully_vaccinated: d['people_fully_vaccinated'] });
+            if (d.total_distributed != null) {
+              stateDict[d['location']].push({ month: d['month'], total_distributed: d['total_distributed'] });
             }
           }
         });
@@ -519,7 +506,7 @@
         // referenced https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object
         const flatData = Object.keys(stateDict).map(state => ({
           state,
-          values: stateDict[state].filter(d => d.people_fully_vaccinated != null)
+          values: stateDict[state].filter(d => d.total_distributed != null)
         }));
 
 
@@ -530,10 +517,10 @@
           const monthData = {};
           arr.forEach(n => {
             if (!monthData[n.month]) {
-              monthData[n.month] = { month: n.month, people_fully_vaccinated: n.people_fully_vaccinated };
+              monthData[n.month] = { month: n.month, total_distributed: n.total_distributed };
             }
             else
-              monthData[n.month].people_fully_vaccinated += n.people_fully_vaccinated;
+              monthData[n.month].total_distributed += n.total_distributed;
           });
           // {"01-2020": {month: "01-2020", ppl: 10000},
           //  "02-2020": {month: "02-2020", ppl: 10000}}
@@ -543,9 +530,8 @@
 
         // referenced https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap
         const vaccinations = flatData.flatMap(stateData =>
-          stateData.values.map(month => month.people_fully_vaccinated)
+          stateData.values.map(month => month.total_distributed)
         );
-
 
         const allMonths = Array.from(new Set(data.map(d => d.month))).sort(); // this is not working apparently
         const yExtent = d3.extent(vaccinations);
@@ -580,7 +566,7 @@
         // // Create line generator
         const lineGen = d3.line()
           .x(d => xScale(d.month))
-          .y(d => yScale(d.people_fully_vaccinated))
+          .y(d => yScale(d.total_distributed))
           //          .defined(d => !isNaN(d.distributed_per_hundred)) // Skip NaN values //chat
           .curve(d3.curveMonotoneX);
 
