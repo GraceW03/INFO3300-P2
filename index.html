@@ -39,9 +39,15 @@
     </div>
 
     <br>
-    <svg id="choropleth" height="500" width="600"></svg>
-    <svg id="tooltipmap" height="80" width="100" style="margin-left: 20px;"></svg>
 
+    <div class="mapContainer" style="display: flex; align-items: center;">
+      <svg id="choropleth" height="500" width="600"></svg>
+      <div class="mapStuff">
+        <svg id="colorLegend" height="150" width="500" ; margin-bottom: 50px;></svg>
+        <br>
+        <svg id="tooltipmap" height="110" width="150" style="margin-left: 20px;"></svg>
+      </div>
+    </div>
 
   </div>
   <br>
@@ -79,7 +85,80 @@
     var updateFunction;
     var variableChangeFunction;
 
+    /************** Function for creating map's legend *************/
+    // code referenced from October 9th lecture
+    function drawLegend(legendSelector, legendColorScale) {
+      console.log(legendColorScale.domain());
+      const offsets = {
+        width: 10,
+        left: 20,
+        top: 2,
+        bottom: 100
+      };
+      const stepSize = 4;
+      const minMaxExtendPercent = 0;
 
+      const legend = d3.select(legendSelector);
+      const legendHeight = legend.attr("height");
+      const legendBarWidth = legend.attr("width") - (offsets.width * 2) - offsets.left;
+      const legendMinMax = d3.extent(legendColorScale.domain());
+      const minMaxExtension = (legendMinMax[1] - legendMinMax[0]) * minMaxExtendPercent;
+      const barHeight = legendHeight - offsets.top - offsets.bottom;
+
+      // referenced https://stackoverflow.com/questions/22452112/nvd3-clear-svg-before-loading-new-chart
+      // to see how to clear the graph
+      legend.selectAll("*").remove();
+
+      let barScale = d3.scaleLog().domain([legendMinMax[0] - minMaxExtension,
+      legendMinMax[1] + minMaxExtension])
+        .range([0, legendBarWidth]);
+      let barAxis = d3.axisBottom(barScale);
+
+      let bar = legend.append("g")
+        .attr("class", "legend colorbar")
+        .attr("transform", `translate(${offsets.width + offsets.left},${offsets.top})`)
+
+      if (legendColorScale.hasOwnProperty('thresholds') || legendColorScale.hasOwnProperty('quantiles')) {
+        // Get the thresholds
+        let thresholds = [];
+        if (legendColorScale.hasOwnProperty('thresholds')) { thresholds = legendColorScale.thresholds() }
+        else { thresholds = legendColorScale.quantiles() }
+
+        const barThresholds = [legendMinMax[0], ...thresholds, legendMinMax[1]];
+
+        // Use the quantile breakpoints plus the min and max of the scale as tick values
+        barAxis.tickValues(barThresholds).tickFormat(d3.format(",.0f"));
+        console.log(barThresholds);
+
+        // Draw rectangles between the threshold segments
+        for (let i = 0; i < barThresholds.length - 1; i++) {
+          let dataStart = barThresholds[i];
+          let dataEnd = barThresholds[i + 1];
+          let pixelStart = barAxis.scale()(dataStart);
+          let pixelEnd = barAxis.scale()(dataEnd);
+
+          bar.append("rect")
+            .attr("x", pixelStart)
+            .attr("y", 0)
+            .attr("width", pixelEnd - pixelStart)
+            .attr("height", barHeight)
+            .style("fill", legendColorScale((dataStart + dataEnd) / 2.0));
+        }
+      }
+
+      legend.append("g")
+        .attr("class", "legend axis")
+        .attr("transform", `translate(${offsets.width + offsets.left},${offsets.top + barHeight + 5})`)
+        .call(barAxis)
+        .selectAll("text")
+        .style("text-anchor", "end")
+        .attr("dx", "-10")
+        .attr("dy", "2")
+        .attr("transform", "rotate(-65)");;
+    }
+
+
+    /************************ Upload data **************************/
     const requestData = async function () {
       let currentYear = "total";
       let currentVariable = 'total_vaccinations';
@@ -159,27 +238,27 @@
         .attr("class", "tooltip")
         .attr("visibility", "hidden");
       tooltipSvg.append("rect")
-        .attr("width", 100)
-        .attr("height", 50)
+        .attr("width", 120)
+        .attr("height", 80)
         .attr("fill", "black")
         .attr("x", 0)
         .attr("y", 0);
 
       let txt = tooltipSvg.append("text")
-        .attr("x", 50)
-        .attr("y", 20)
+        .attr("x", 60)
+        .attr("y", 30)
         .attr("fill", "white")
         .attr("text-anchor", "middle")
         .attr("alignment-baseline", "middle")
         .attr("font-size", "12px");
 
       let txt2 = tooltipSvg.append("text")
-        .attr("x", 50)
-        .attr("y", 35)
+        .attr("x", 60)
+        .attr("y", 50)
         .attr("fill", "white")
         .attr("text-anchor", "middle")
         .attr("alignment-baseline", "middle")
-        .attr("font-size", "10px");
+        .attr("font-size", "11px");
 
       function mouseEntersState() {
         tooltipSvg.style("visibility", "visible");
@@ -189,8 +268,10 @@
         let stateName = codeDict[stateID];
         let totalVaccinations = stateDict[stateName];
 
+        // referenced https://stackoverflow.com/questions/15211488/formatting-numbers-with-commas-in-d3
+        // for help with using d3.format for adding commas in numerical values
         txt.text(stateName || "Unknown State");
-        txt2.text(totalVaccinations ? `Total: ${totalVaccinations}` : "Data unavailable");
+        txt2.text(totalVaccinations ? `Total: ${d3.format(",")(totalVaccinations)}` : "Data unavailable");
 
         var mo = topojson.mesh(us, us.objects.states, function (a, b) { return a.id === stateID || b.id === stateID; });
         momesh.datum(mo).attr("d", path)
@@ -302,6 +383,8 @@
 
       function drawBars() {
 
+        // referenced https://stackoverflow.com/questions/22452112/nvd3-clear-svg-before-loading-new-chart
+        // to see how to clear the graph
         annotations.selectAll("*").remove();
         chartArea.selectAll("*").remove();
 
@@ -487,6 +570,8 @@
 
 
         // aggregate flat data together by month
+        // referenced https://stackoverflow.com/questions/22452112/nvd3-clear-svg-before-loading-new-chart
+        // to see how to clear the graph
         flatlineData.forEach(state => {
           lineannotations.selectAll("*").remove();
           let arr = state.values;
@@ -671,13 +756,19 @@
         addYears(year);
         currentYear = year;
 
+        console.log(Object.values(stateDict).sort());
+
         // update map
         const colorScale = d3.scaleQuantile()
           .domain(Object.values(stateDict))
           .range(["#caf0f8", "#90e0ef", "#00b4d8", "#0077b6", "#03045e"]);
 
+        drawLegend("#colorLegend", colorScale);
+
         svg.selectAll(".state")
           .style("fill", d => colorScale(stateDict[codeDict[d.id]]));
+
+        console.log(colorScale);
 
         // update line graph
         drawLine();
