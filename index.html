@@ -66,7 +66,7 @@
     <div class=bargraph>
 
       <h3>Distribution by Manufacturer Over Time</h3>
-      <svg id="barchart" height="500" width="600"></svg>
+      <svg id="barchart" height="500" width="800"></svg>
 
       <svg id="legend3" height="250" width="200"></svg>
     </div>
@@ -74,6 +74,11 @@
 
 
   <script>
+    const notWanted = ["United States", "Guam", 'Bureau of Prisons',
+      'Dept of Defense', 'Federated States of Micronesia', 'Indian Health Svc',
+      'Long Term Care', 'Marshall Islands', 'Northern Mariana Island',
+      'Republic of Palau', 'Veterans Health', 'Puerto Rico'
+    ]; // included in our current dataset but we dont want these locations to show in our graph
 
     /************** Function for creating map's legend *************/
     // code referenced from October 9th lecture
@@ -103,6 +108,7 @@
       legendMinMax[1] + minMaxExtension])
         .range([0, legendBarWidth]);
       let barAxis = d3.axisBottom(barScale);
+      console.log(barScale);
 
       let bar = legend.append("g")
         .attr("class", "legend colorbar")
@@ -114,8 +120,9 @@
         if (legendColorScale.hasOwnProperty('thresholds')) { thresholds = legendColorScale.thresholds() }
         else { thresholds = legendColorScale.quantiles() }
 
-        const barThresholds = [legendMinMax[0], ...thresholds, legendMinMax[1]];
+        const barThresholds = [(legendMinMax[0] == 0 ? 1 : legendMinMax[0]), ...thresholds, legendMinMax[1]];
 
+        console.log(barThresholds);
         // Use the quantile breakpoints plus the min and max of the scale as tick values
         barAxis.tickValues(barThresholds).tickFormat(d3.format(",.0f"));
         console.log(barThresholds);
@@ -124,8 +131,8 @@
         for (let i = 0; i < barThresholds.length - 1; i++) {
           let dataStart = barThresholds[i];
           let dataEnd = barThresholds[i + 1];
-          let pixelStart = barAxis.scale()(dataStart);
-          let pixelEnd = barAxis.scale()(dataEnd);
+          let pixelStart = barAxis.scale()(dataStart) || 0;
+          let pixelEnd = barAxis.scale()(dataEnd) || 0;
 
           bar.append("rect")
             .attr("x", pixelStart)
@@ -135,6 +142,8 @@
             .style("fill", legendColorScale((dataStart + dataEnd) / 2.0));
         }
       }
+
+      console.log(offsets.width, offsets.left, offsets.top, barHeight);
 
       // referenced http://www.d3noob.org/2013/01/how-to-rotate-text-labels-for-x-axis-of.html
       // for help rotating axis text
@@ -509,11 +518,7 @@
         d['month'] = timeFormatter(d['date']);
       });
 
-      const notWanted = ["United States", "Guam", 'Bureau of Prisons',
-        'Dept of Defense', 'Federated States of Micronesia', 'Indian Health Svc',
-        'Long Term Care', 'Marshall Islands', 'Northern Mariana Island',
-        'Republic of Palau', 'Veterans Health', 'Puerto Rico'
-      ]; // included in our current dataset but we dont want these locations to show in our graph
+
       let linestateDict = {};
       linedata.forEach(d => {
         if (!notWanted.includes(d.location)) {
@@ -671,9 +676,11 @@
         // update map
         stateDict = {};
         vaccineData.forEach(d => {
-          const dataYear = new Date(d.date).getFullYear();
-          if (year === 'total' || dataYear === year) {
-            stateDict[d.location] = (stateDict[d.location] || 0) + d[currentVariable];
+          if (!notWanted.includes(d.location)) {
+            const dataYear = new Date(d.date).getFullYear();
+            if (year === 'total' || dataYear === year) {
+              stateDict[d.location] = (stateDict[d.location] || 0) + d[currentVariable];
+            }
           }
         });
 
@@ -757,8 +764,6 @@
         button.classList.add("active");
       });
     });
-
-    console.log(updateFunction);
 
   </script>
 </body>
