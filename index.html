@@ -722,7 +722,7 @@
               linestateDict[d.location] = [];
             }
             if (d.total_distributed != null) { // Check for non-null values
-              const dataYear = new Date(d.month).getFullYear();
+              const dataYear = new Date(d.date).getFullYear();
               if (year === 'total' || dataYear === year)
                 linestateDict[d.location].push({ month: d.month, total_distributed: d.total_distributed });
             }
