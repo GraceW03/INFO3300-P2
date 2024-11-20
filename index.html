@@ -22,8 +22,24 @@
   <!-- First SVG section with interactive map  -->
 
   <div class="content">
+    <br>
+    <p>COVID-19 was a very drastic change to all of our lives. It completely upturned our
+      school routines, working environments, economies, and daily lives. It changed the way that
+      people viewed public health and sanitation, and raised awareness of good epidemiological
+      practices. One issue that was highlighted was vaccination, and the way that vaccines can
+      protect communities from epidemics. Thus, we looked to explore patterns in the vaccinations
+      and distribution of vaccines across the United States. Do these vary according to
+      geographical regions? How did these change as the pandemic progressed?</p>
+    <br>
 
     <h3>COVID-19 Vaccinations across the US from 2021-2023</h3>
+
+    <p>This map visualizes the total number of COVID-19 vaccinations distributed across the U.S. by state from 2021 to
+      2023 and all years. The states are shaded in a gradient, with darker shades representing higher total vaccination
+      numbers and we have a legend to show this on a more detailed view. The map provides a clear geographic
+      representation of vaccine distribution, highlighting state-by-state disparities in total vaccinations administered
+      with a breakdown of different data values we represented, such as the total, people that were fully vaccinated,
+      and the boosters given. </p>
 
     <!-- Creates buttons for the map -->
     <div>
@@ -51,6 +67,11 @@
     <div class=linegraph>
 
       <h3>Distribution of Vaccines, by State</h3>
+
+      <p>The visualization showcases the monthly distribution of COVID-19 vaccines across the United States, with the
+        ability to filter by specific years (2021, 2022, 2023, or all years combined). Between all the states the chart
+        shows the fluctuations in vaccine distribution over time. It highlights the peaks, plateaus, and declines in
+        vaccine rollout efforts.</p>
       <label for="stateLine">Select State:</label>
       <select id="stateLine"></select>
       <br>
@@ -66,6 +87,12 @@
     <div class=bargraph>
 
       <h3>Distribution by Manufacturer Over Time</h3>
+
+      <p>This visualization illustrates the distribution of COVID-19 vaccines over time by manufacturer, showcasing the
+        total number of doses administered for each manufacturer (Moderna, Pfizer/BioNTech, Johnson & Johnson, and
+        Novavax) across the months from 2021 to 2023 and also one for all years. The data highlights how different
+        manufacturers contributed to the vaccine rollout efforts and how their distribution changed over time. </p>
+
       <svg id="barchart" height="500" width="800"></svg>
 
       <svg id="legend3" height="250" width="200"></svg>
@@ -267,6 +294,8 @@
 
         // referenced https://stackoverflow.com/questions/15211488/formatting-numbers-with-commas-in-d3
         // for help with using d3.format for adding commas in numerical values
+        // https://sdust.dev/posts/2021-01-26_How-to-define-a-default-value-for-function-in-JavaScript.html for help 
+        // with error handling (we use this elsewhere in the code too)
         txt.text(stateName || "Unknown State");
         txt2.text(totalVaccinations ? `Total: ${d3.format(",")(totalVaccinations)}` : "Data unavailable");
 

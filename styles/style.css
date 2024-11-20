@@ -1,13 +1,13 @@
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  color: #00022b;
+  font-family: Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: #0c105e;
   background-color: #FAF9F6;
 }
 
 .top {
   margin: 0;
-  background-color: #5293BB;
+  background-color: #62a4cd;
   text-align: center;
   padding: 0.5em;
   position: fixed;
